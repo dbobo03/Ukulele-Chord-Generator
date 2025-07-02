@@ -4,12 +4,22 @@ import './App.css';
 const App = () => {
   const [songInput, setSongInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [chordSheet, setChordSheet] = useState(null);
+  const [chordSheets, setChordSheets] = useState([]);
   const [error, setError] = useState('');
   const [history, setHistory] = useState([]);
   const [spotifyResults, setSpotifyResults] = useState([]);
-  const [searchMode, setSearchMode] = useState('manual'); // 'manual' or 'spotify'
+  const [searchType, setSearchType] = useState('general'); // 'general', 'spotify', 'youtube'
   const [spotifyToken, setSpotifyToken] = useState(null);
+  const [selectedStyles, setSelectedStyles] = useState(['strumming']);
+  const [showChordGraphs, setShowChordGraphs] = useState(true);
+  const [showSettings, setShowSettings] = useState(false);
+
+  const ukuleleStyles = [
+    { id: 'strumming', name: 'Strumming', icon: '🎸', description: 'Classic down-up strumming patterns' },
+    { id: 'fingerpicking', name: 'Fingerpicking', icon: '✋', description: 'Gentle finger-style playing' },
+    { id: 'classical', name: 'Classical', icon: '🎼', description: 'Traditional classical technique' },
+    { id: 'jazz', name: 'Jazz', icon: '🎷', description: 'Sophisticated jazz chord voicings' }
+  ];
 
   useEffect(() => {
     const savedHistory = localStorage.getItem('ukuleleHistory');
@@ -39,6 +49,21 @@ const App = () => {
     }
   };
 
+  const extractYouTubeTitle = (url) => {
+    // Simple YouTube title extraction from URL
+    try {
+      const urlObj = new URL(url);
+      const videoId = urlObj.searchParams.get('v');
+      if (videoId) {
+        // For now, return a placeholder - in production, you'd call YouTube API
+        return `YouTube Video (${videoId})`;
+      }
+    } catch (err) {
+      return null;
+    }
+    return null;
+  };
+
   const searchSpotify = async (query) => {
     if (!spotifyToken || !query.trim()) {
       setSpotifyResults([]);
@@ -47,7 +72,7 @@ const App = () => {
 
     try {
       const response = await fetch(
-        `https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=track&limit=10`,
+        `https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=track&limit=8`,
         {
           headers: {
             'Authorization': `Bearer ${spotifyToken}`
@@ -69,111 +94,126 @@ const App = () => {
     const songTitle = `${track.artists[0].name} - ${track.name}`;
     setSongInput(songTitle);
     setSpotifyResults([]);
-    setSearchMode('manual');
   };
 
-  const saveToHistory = (sheet) => {
-    const newHistory = [sheet, ...history.slice(0, 9)]; // Keep last 10
+  const saveToHistory = (sheets) => {
+    const historyEntry = {
+      title: songInput,
+      sheets: sheets,
+      timestamp: new Date().toISOString(),
+      id: Date.now()
+    };
+    const newHistory = [historyEntry, ...history.slice(0, 9)];
     setHistory(newHistory);
     localStorage.setItem('ukuleleHistory', JSON.stringify(newHistory));
   };
 
-  const generateChordSheet = async () => {
-    if (!songInput.trim()) return;
+  const generateChordSheets = async () => {
+    if (!songInput.trim() || selectedStyles.length === 0) return;
     
     setLoading(true);
     setError('');
+    setChordSheets([]);
     
     try {
-      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.REACT_APP_GROQ_API_KEY}`
-        },
-        body: JSON.stringify({
-          model: 'llama3-8b-8192',
-          messages: [
-            {
-              role: 'system',
-              content: `You are a master ukulele instructor and Hawaiian musician with 30+ years of experience. Create beautiful, authentic ukulele chord sheets that capture the aloha spirit. 
+      const generatedSheets = [];
+      
+      for (const style of selectedStyles) {
+        const styleInfo = ukuleleStyles.find(s => s.id === style);
+        
+        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${process.env.REACT_APP_GROQ_API_KEY}`
+          },
+          body: JSON.stringify({
+            model: 'llama3-8b-8192',
+            messages: [
+              {
+                role: 'system',
+                content: `You are a professional ukulele instructor specializing in ${styleInfo.name} technique. Create authentic ukulele chord sheets with expert-level ${style} arrangements.
 
-🎵 UKULELE MASTERY RULES:
-1. AUTHENTIC CHORDS: Use traditional ukulele fingerings - C, G, Am, F, D, A, E, Em, Dm, C7, G7, F7
-2. HAWAIIAN STYLE: Include classic progressions like vi-IV-I-V and ii-V-I 
-3. PERFECT TIMING: Place chords exactly above the syllable where they change
-4. SONG STRUCTURE: Clearly mark [Intro], [Verse], [Chorus], [Bridge], [Outro] 
-5. STRUMMING: Suggest Island-style strum patterns (D-D-U-U-D-U)
-6. CHORD DIAGRAMS: Show finger positions for complex chords
-7. ALOHA SPIRIT: Add encouraging notes and Hawaiian musical tips
+🎵 UKULELE EXPERTISE - ${styleInfo.name.toUpperCase()} STYLE:
 
-🌺 FORMAT EXAMPLE:
-[Intro] - C - G - Am - F
+${style === 'strumming' ? `
+STRUMMING PATTERNS:
+- Use classic patterns: D-D-U-U-D-U, D-U-X-U-D-U
+- Include palm muting and accent techniques
+- Focus on rhythm and groove
+- Suggest tempo variations
+` : style === 'fingerpicking' ? `
+FINGERPICKING TECHNIQUES:
+- Use PIMA fingering notation (P=thumb, I=index, M=middle, A=ring)
+- Create flowing arpeggiated patterns
+- Include bass-melody combinations
+- Focus on gentle, melodic flow
+` : style === 'classical' ? `
+CLASSICAL TECHNIQUE:
+- Use proper classical fingering positions
+- Include rest stroke and free stroke notation
+- Focus on precise timing and dynamics
+- Add ornamentations and grace notes
+` : `
+JAZZ STYLING:
+- Use sophisticated chord extensions (7ths, 9ths, 13ths)
+- Include chord substitutions and variations
+- Focus on syncopated rhythms
+- Add swing feel notation
+`}
 
-[Verse 1]
-C              G           Am          F
-Somewhere over the rainbow, way up high
-C              G           Am         F
-There's a land that I heard of, once in a lullaby
+CHORD REQUIREMENTS:
+1. AUTHENTIC CHORDS: Use ukulele-friendly voicings
+2. PERFECT TIMING: Place chords exactly above syllables
+3. SONG STRUCTURE: Clear [Intro], [Verse], [Chorus], [Bridge] sections
+4. TECHNIQUE NOTES: Include specific ${style} techniques
+5. DIFFICULTY: Mark appropriate skill level
+${showChordGraphs ? '6. CHORD DIAGRAMS: Include fingering charts for complex chords' : ''}
 
-[Chorus]
-F              C           G           Am
-Somewhere over the rainbow, skies are blue
-F              C           G          Am        F
-And the dreams that you dare to dream really do come true
+FORMAT: Professional music sheet with proper spacing and clear notation.`
+              },
+              {
+                role: 'user',
+                content: `Create a professional ${styleInfo.name} ukulele arrangement for: "${songInput}". 
 
-🎸 Always include:
-- Key signature and capo info
-- Strum pattern suggestion  
-- Difficulty level (Beginner/Intermediate/Advanced)
-- Hawaiian musical wisdom
+Make it authentic to the ${style} style with appropriate techniques, chord voicings, and playing instructions. If you don't know this exact song, create an inspiring arrangement that captures the essence of the title using ${style} technique.`
+              }
+            ],
+            max_tokens: 1200,
+            temperature: 0.7
+          })
+        });
 
-Create something that brings joy and aloha to the player! 🌺`
-            },
-            {
-              role: 'user',
-              content: `Create a beautiful ukulele chord sheet for: "${songInput}". 
+        if (!response.ok) {
+          throw new Error(`API Error: ${response.status}`);
+        }
 
-If this is a real song, provide accurate chords and lyrics. If you don't know this exact song, create an inspiring chord progression and meaningful lyrics that capture the essence of the title. Make it perfect for ukulele - warm, melodic, and full of aloha spirit! 🌺🎵`
-            }
-          ],
-          max_tokens: 1000,
-          temperature: 0.7
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`API Error: ${response.status}`);
+        const data = await response.json();
+        generatedSheets.push({
+          style: styleInfo,
+          content: data.choices[0].message.content,
+          timestamp: new Date().toISOString(),
+          id: Date.now() + Math.random()
+        });
       }
 
-      const data = await response.json();
-      const generatedSheet = {
-        title: songInput,
-        content: data.choices[0].message.content,
-        timestamp: new Date().toISOString(),
-        id: Date.now()
-      };
-
-      setChordSheet(generatedSheet);
-      saveToHistory(generatedSheet);
+      setChordSheets(generatedSheets);
+      saveToHistory(generatedSheets);
       
     } catch (err) {
       console.error('Error:', err);
-      setError('Oops! The ukulele spirits are taking a break 🌺 Please try again in a moment.');
+      setError('Something went wrong. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  const exportToPDF = () => {
-    if (!chordSheet) return;
-    
-    // Create a new window for printing with Hawaiian styling
+  const exportToPDF = (sheet) => {
     const printWindow = window.open('', '_blank');
     printWindow.document.write(`
       <html>
         <head>
-          <title>${chordSheet.title} - Ukulele Chords</title>
+          <title>${songInput} - ${sheet.style.name} Style</title>
           <style>
             @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
             body {
@@ -186,55 +226,52 @@ If this is a real song, provide accurate chords and lyrics. If you don't know th
             .header {
               text-align: center;
               margin-bottom: 30px;
-              border-bottom: 3px solid #d4a574;
+              border-bottom: 3px solid #8b4513;
               padding-bottom: 20px;
             }
             h1 {
               font-family: 'Caveat', cursive;
               font-size: 2.5rem;
-              color: #ff6b35;
-              margin-bottom: 10px;
-              text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
-            }
-            .subtitle {
               color: #8b4513;
-              font-style: italic;
-              font-size: 1.1rem;
+              margin-bottom: 10px;
+            }
+            .style-badge {
+              background: #d4a574;
+              color: white;
+              padding: 8px 16px;
+              border-radius: 20px;
+              font-weight: bold;
+              display: inline-block;
+              margin: 10px 0;
             }
             pre {
               white-space: pre-wrap;
               font-size: 14px;
-              background: rgba(255, 255, 255, 0.7);
+              background: rgba(255, 255, 255, 0.8);
               padding: 30px;
               border-radius: 15px;
-              border: 2px solid #d4a574;
+              border: 2px solid #8b4513;
               line-height: 1.9;
-              box-shadow: 0 8px 32px rgba(139, 69, 19, 0.2);
             }
             .footer {
               margin-top: 40px;
               text-align: center;
               font-size: 12px;
               color: #8b4513;
-              border-top: 2px solid #d4a574;
+              border-top: 2px solid #8b4513;
               padding-top: 20px;
-            }
-            .decorative {
-              font-size: 1.5rem;
-              color: #ff6b35;
             }
           </style>
         </head>
         <body>
           <div class="header">
-            <h1>🌺 ${chordSheet.title} 🎵</h1>
-            <div class="subtitle">Ukulele Chord Sheet • Aloha Style</div>
+            <h1>🎸 ${songInput}</h1>
+            <div class="style-badge">${sheet.style.icon} ${sheet.style.name} Style</div>
           </div>
-          <pre>${chordSheet.content}</pre>
+          <pre>${sheet.content}</pre>
           <div class="footer">
-            <div class="decorative">🏝️ 🎸 🌺 🎵 🏝️</div>
-            <div>Generated with Aloha • ${new Date(chordSheet.timestamp).toLocaleDateString()}</div>
-            <div style="margin-top: 10px; font-style: italic;">Play with joy and share the aloha spirit! 🌺</div>
+            <div>Professional Ukulele Arrangement • ${new Date(sheet.timestamp).toLocaleDateString()}</div>
+            <div style="margin-top: 10px; font-style: italic;">Generated with precision and musicality</div>
           </div>
         </body>
       </html>
@@ -243,17 +280,22 @@ If this is a real song, provide accurate chords and lyrics. If you don't know th
     printWindow.print();
   };
 
-  const loadFromHistory = (sheet) => {
-    setChordSheet(sheet);
-    setSongInput(sheet.title);
+  const loadFromHistory = (historyItem) => {
+    setChordSheets(historyItem.sheets);
+    setSongInput(historyItem.title);
   };
 
   const handleInputChange = (e) => {
     const value = e.target.value;
     setSongInput(value);
     
-    if (searchMode === 'spotify' && value.length > 2) {
+    if (searchType === 'spotify' && value.length > 2) {
       searchSpotify(value);
+    } else if (searchType === 'youtube' && value.includes('youtube.com')) {
+      const title = extractYouTubeTitle(value);
+      if (title) {
+        setSongInput(title);
+      }
     } else {
       setSpotifyResults([]);
     }
@@ -261,14 +303,27 @@ If this is a real song, provide accurate chords and lyrics. If you don't know th
 
   const handleKeyPress = (e) => {
     if (e.key === 'Enter') {
-      generateChordSheet();
+      generateChordSheets();
     }
   };
 
-  const toggleSearchMode = () => {
-    setSearchMode(searchMode === 'manual' ? 'spotify' : 'manual');
-    setSpotifyResults([]);
-    setSongInput('');
+  const toggleStyle = (styleId) => {
+    setSelectedStyles(prev => 
+      prev.includes(styleId) 
+        ? prev.filter(id => id !== styleId)
+        : [...prev, styleId]
+    );
+  };
+
+  const getPlaceholderText = () => {
+    switch (searchType) {
+      case 'spotify':
+        return "🎵 Search Spotify songs... (e.g., 'Perfect Ed Sheeran')";
+      case 'youtube':
+        return "📺 Paste YouTube URL... (e.g., 'https://youtube.com/watch?v=...')";
+      default:
+        return "🎵 Enter any song title... (e.g., 'Over the Rainbow')";
+    }
   };
 
   return (
@@ -277,9 +332,9 @@ If this is a real song, provide accurate chords and lyrics. If you don't know th
       <header className="header">
         <div className="header-content">
           <h1 className="title">
-            <span className="title-text">Aloha Ukulele</span>
+            <span className="title-text">Ukulele Master</span>
           </h1>
-          <p className="subtitle">Transform any song into beautiful Hawaiian-style chord sheets 🌺</p>
+          <p className="subtitle">Professional chord sheets for every playing style 🎸</p>
         </div>
       </header>
 
@@ -287,39 +342,43 @@ If this is a real song, provide accurate chords and lyrics. If you don't know th
       <main className="main-content">
         <div className="container">
           
+          {/* Search Type Selector */}
+          <div className="search-type-selector">
+            <button 
+              onClick={() => setSearchType('general')}
+              className={`search-type-btn ${searchType === 'general' ? 'active' : ''}`}
+            >
+              🌐 General
+            </button>
+            <button 
+              onClick={() => setSearchType('spotify')}
+              className={`search-type-btn ${searchType === 'spotify' ? 'active' : ''}`}
+            >
+              🎵 Spotify
+            </button>
+            <button 
+              onClick={() => setSearchType('youtube')}
+              className={`search-type-btn ${searchType === 'youtube' ? 'active' : ''}`}
+            >
+              📺 YouTube
+            </button>
+          </div>
+
           {/* Input Section */}
           <div className="input-section">
-            <div className="search-mode-toggle">
-              <button 
-                onClick={toggleSearchMode}
-                className={`mode-btn ${searchMode === 'manual' ? 'active' : ''}`}
-              >
-                ✏️ Manual Input
-              </button>
-              <button 
-                onClick={toggleSearchMode}
-                className={`mode-btn ${searchMode === 'spotify' ? 'active' : ''}`}
-              >
-                🎵 Spotify Search
-              </button>
-            </div>
-
             <div className="search-container">
               <div className="input-wrapper">
                 <input
                   type="text"
                   value={songInput}
                   onChange={handleInputChange}
-                  placeholder={searchMode === 'spotify' 
-                    ? "🎵 Search Spotify songs... (e.g., 'Perfect Ed Sheeran')" 
-                    : "🎵 Enter any song title... (e.g., 'Over the Rainbow', 'Perfect', 'Hallelujah')"
-                  }
+                  placeholder={getPlaceholderText()}
                   className="song-input"
                   onKeyPress={handleKeyPress}
                 />
                 
                 {/* Spotify Search Results */}
-                {searchMode === 'spotify' && spotifyResults.length > 0 && (
+                {searchType === 'spotify' && spotifyResults.length > 0 && (
                   <div className="spotify-results">
                     {spotifyResults.map((track) => (
                       <div 
@@ -343,46 +402,106 @@ If this is a real song, provide accurate chords and lyrics. If you don't know th
                   </div>
                 )}
               </div>
-              
+            </div>
+
+            {/* Settings Panel */}
+            <div className="settings-panel">
               <button 
-                onClick={generateChordSheet}
-                disabled={loading || !songInput.trim()}
+                onClick={() => setShowSettings(!showSettings)}
+                className="settings-toggle"
+              >
+                ⚙️ Style Settings
+              </button>
+              
+              {showSettings && (
+                <div className="settings-content">
+                  {/* Style Selection */}
+                  <div className="setting-group">
+                    <label className="setting-label">Playing Styles</label>
+                    <div className="style-grid">
+                      {ukuleleStyles.map((style) => (
+                        <div 
+                          key={style.id}
+                          onClick={() => toggleStyle(style.id)}
+                          className={`style-card ${selectedStyles.includes(style.id) ? 'selected' : ''}`}
+                        >
+                          <div className="style-icon">{style.icon}</div>
+                          <div className="style-name">{style.name}</div>
+                          <div className="style-desc">{style.description}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Chord Graphs Toggle */}
+                  <div className="setting-group">
+                    <label className="setting-label">
+                      <input
+                        type="checkbox"
+                        checked={showChordGraphs}
+                        onChange={(e) => setShowChordGraphs(e.target.checked)}
+                        className="setting-checkbox"
+                      />
+                      Include Chord Diagrams
+                    </label>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            {/* Generate Button */}
+            <div className="generate-section">
+              <button 
+                onClick={generateChordSheets}
+                disabled={loading || !songInput.trim() || selectedStyles.length === 0}
                 className="generate-btn"
               >
                 {loading ? (
                   <span className="loading">
-                    <span className="spinner"></span> Creating Magic...
+                    <span className="spinner"></span> Creating {selectedStyles.length} Style{selectedStyles.length > 1 ? 's' : ''}...
                   </span>
                 ) : (
-                  '🌺 Generate Chords'
+                  `🎸 Generate ${selectedStyles.length} Style${selectedStyles.length > 1 ? 's' : ''}`
                 )}
               </button>
             </div>
             
             {error && (
               <div className="error-message">
-                🌺 {error}
+                ⚠️ {error}
               </div>
             )}
           </div>
 
           {/* Results Section */}
-          {chordSheet && (
+          {chordSheets.length > 0 && (
             <div className="results-section">
-              <div className="result-header">
-                <h2 className="result-title">{chordSheet.title}</h2>
-                <div className="result-actions">
-                  <button onClick={exportToPDF} className="export-btn">
-                    🏝️ Export PDF
-                  </button>
-                  <span className="timestamp">
-                    {new Date(chordSheet.timestamp).toLocaleDateString()}
-                  </span>
+              <div className="results-header">
+                <h2 className="results-title">🎵 {songInput}</h2>
+                <div className="results-meta">
+                  {chordSheets.length} style{chordSheets.length > 1 ? 's' : ''} generated
                 </div>
               </div>
               
-              <div className="chord-sheet">
-                <pre className="chord-content">{chordSheet.content}</pre>
+              <div className="chord-sheets-grid">
+                {chordSheets.map((sheet) => (
+                  <div key={sheet.id} className="chord-sheet-card">
+                    <div className="sheet-header">
+                      <div className="style-badge">
+                        {sheet.style.icon} {sheet.style.name}
+                      </div>
+                      <button 
+                        onClick={() => exportToPDF(sheet)} 
+                        className="export-btn"
+                      >
+                        📄 PDF
+                      </button>
+                    </div>
+                    <div className="chord-sheet">
+                      <pre className="chord-content">{sheet.content}</pre>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           )}
@@ -390,17 +509,17 @@ If this is a real song, provide accurate chords and lyrics. If you don't know th
           {/* History Section */}
           {history.length > 0 && (
             <div className="history-section">
-              <h3 className="history-title">Recent Island Jams</h3>
+              <h3 className="history-title">📚 Recent Sessions</h3>
               <div className="history-grid">
-                {history.map((sheet) => (
+                {history.map((item) => (
                   <div 
-                    key={sheet.id} 
+                    key={item.id} 
                     className="history-item"
-                    onClick={() => loadFromHistory(sheet)}
+                    onClick={() => loadFromHistory(item)}
                   >
-                    <div className="history-title-text">🎵 {sheet.title}</div>
-                    <div className="history-date">
-                      {new Date(sheet.timestamp).toLocaleDateString()}
+                    <div className="history-title-text">🎵 {item.title}</div>
+                    <div className="history-meta">
+                      {item.sheets.length} style{item.sheets.length > 1 ? 's' : ''} • {new Date(item.timestamp).toLocaleDateString()}
                     </div>
                   </div>
                 ))}
@@ -413,7 +532,7 @@ If this is a real song, provide accurate chords and lyrics. If you don't know th
       {/* Footer */}
       <footer className="footer">
         <div className="footer-content">
-          <p>🌺 Made with Aloha for Ukulele Lovers • Powered by AI Magic 🎵</p>
+          <p>🎸 Professional Ukulele Tool • Powered by AI</p>
         </div>
       </footer>
     </div>
