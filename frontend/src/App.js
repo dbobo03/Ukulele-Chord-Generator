@@ -1,54 +1,250 @@
-import { useEffect } from "react";
-import "./App.css";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import axios from "axios";
+import React, { useState, useEffect } from 'react';
+import './App.css';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+const App = () => {
+  const [songInput, setSongInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [chordSheet, setChordSheet] = useState(null);
+  const [error, setError] = useState('');
+  const [history, setHistory] = useState([]);
 
-const Home = () => {
-  const helloWorldApi = async () => {
+  useEffect(() => {
+    const savedHistory = localStorage.getItem('ukuleleHistory');
+    if (savedHistory) {
+      setHistory(JSON.parse(savedHistory));
+    }
+  }, []);
+
+  const saveToHistory = (sheet) => {
+    const newHistory = [sheet, ...history.slice(0, 9)]; // Keep last 10
+    setHistory(newHistory);
+    localStorage.setItem('ukuleleHistory', JSON.stringify(newHistory));
+  };
+
+  const generateChordSheet = async () => {
+    if (!songInput.trim()) return;
+    
+    setLoading(true);
+    setError('');
+    
     try {
-      const response = await axios.get(`${API}/`);
-      console.log(response.data.message);
-    } catch (e) {
-      console.error(e, `errored out requesting / api`);
+      const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.REACT_APP_DEEPSEEK_API_KEY}`
+        },
+        body: JSON.stringify({
+          model: 'deepseek-chat',
+          messages: [
+            {
+              role: 'system',
+              content: `You are a professional ukulele instructor and chord sheet creator. Create accurate, well-formatted ukulele chord sheets with lyrics. Follow these rules:
+
+1. UKULELE-SPECIFIC: Use only ukulele-friendly chords (C, G, Am, F, D, Em, A, E, Dm, etc.)
+2. CHORD POSITIONING: Place chords directly above the syllable where they change
+3. SONG STRUCTURE: Clearly label sections [Verse], [Chorus], [Bridge], [Outro]
+4. FORMAT: Use this exact format:
+   [Verse 1]
+   C              F           G           Am
+   Twinkle twinkle little star, how I wonder what you are
+   F              C           G           C
+   Up above the world so high, like a diamond in the sky
+
+5. FINGERING HINTS: Add simple chord diagrams for complex chords
+6. STRUM PATTERN: Suggest a basic strum pattern
+7. KEY: Choose ukulele-friendly keys (C, G, D, A, F major or their relative minors)
+
+Create a complete, playable chord sheet.`
+            },
+            {
+              role: 'user',
+              content: `Create a ukulele chord sheet for: "${songInput}". If you don't know the exact song, create a chord progression and lyrics that would work well for a song with this title. Make it beginner-friendly but musically interesting.`
+            }
+          ],
+          max_tokens: 800,
+          temperature: 0.7
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`API Error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const generatedSheet = {
+        title: songInput,
+        content: data.choices[0].message.content,
+        timestamp: new Date().toISOString(),
+        id: Date.now()
+      };
+
+      setChordSheet(generatedSheet);
+      saveToHistory(generatedSheet);
+      
+    } catch (err) {
+      console.error('Error:', err);
+      setError('Failed to generate chord sheet. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
-  useEffect(() => {
-    helloWorldApi();
-  }, []);
+  const exportToPDF = () => {
+    if (!chordSheet) return;
+    
+    // Create a new window for printing
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>${chordSheet.title} - Ukulele Chords</title>
+          <style>
+            body {
+              font-family: 'Courier New', monospace;
+              margin: 40px;
+              line-height: 1.6;
+              color: #333;
+            }
+            h1 {
+              text-align: center;
+              color: #d97706;
+              border-bottom: 2px solid #d97706;
+              padding-bottom: 10px;
+            }
+            pre {
+              white-space: pre-wrap;
+              font-size: 14px;
+              background: #f9fafb;
+              padding: 20px;
+              border-radius: 8px;
+              border: 1px solid #e5e7eb;
+            }
+            .footer {
+              margin-top: 30px;
+              text-align: center;
+              font-size: 12px;
+              color: #6b7280;
+            }
+          </style>
+        </head>
+        <body>
+          <h1>🎵 ${chordSheet.title}</h1>
+          <pre>${chordSheet.content}</pre>
+          <div class="footer">Generated by Ukulele Chord Generator • ${new Date(chordSheet.timestamp).toLocaleDateString()}</div>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.print();
+  };
+
+  const loadFromHistory = (sheet) => {
+    setChordSheet(sheet);
+    setSongInput(sheet.title);
+  };
 
   return (
-    <div>
-      <header className="App-header">
-        <a
-          className="App-link"
-          href="https://emergent.sh"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <img src="https://avatars.githubusercontent.com/in/1201222?s=120&u=2686cf91179bbafbc7a71bfbc43004cf9ae1acea&v=4" />
-        </a>
-        <p className="mt-5">Building something incredible ~!</p>
+    <div className="app">
+      {/* Header */}
+      <header className="header">
+        <div className="header-content">
+          <h1 className="title">
+            🎵 <span className="title-text">Ukulele Chord Generator</span>
+          </h1>
+          <p className="subtitle">Transform any song into beautiful ukulele chord sheets</p>
+        </div>
       </header>
+
+      {/* Main Content */}
+      <main className="main-content">
+        <div className="container">
+          
+          {/* Input Section */}
+          <div className="input-section">
+            <div className="search-container">
+              <input
+                type="text"
+                value={songInput}
+                onChange={(e) => setSongInput(e.target.value)}
+                placeholder="Enter song title or 'Artist - Song Name'"
+                className="song-input"
+                onKeyPress={(e) => e.key === 'Enter' && generateChordSheet()}
+              />
+              <button 
+                onClick={generateChordSheet}
+                disabled={loading || !songInput.trim()}
+                className="generate-btn"
+              >
+                {loading ? (
+                  <span className="loading">
+                    <span className="spinner"></span> Generating...
+                  </span>
+                ) : (
+                  'Generate Chords 🎸'
+                )}
+              </button>
+            </div>
+            
+            {error && (
+              <div className="error-message">
+                ⚠️ {error}
+              </div>
+            )}
+          </div>
+
+          {/* Results Section */}
+          {chordSheet && (
+            <div className="results-section">
+              <div className="result-header">
+                <h2 className="result-title">🎵 {chordSheet.title}</h2>
+                <div className="result-actions">
+                  <button onClick={exportToPDF} className="export-btn">
+                    📄 Export PDF
+                  </button>
+                  <span className="timestamp">
+                    {new Date(chordSheet.timestamp).toLocaleDateString()}
+                  </span>
+                </div>
+              </div>
+              
+              <div className="chord-sheet">
+                <pre className="chord-content">{chordSheet.content}</pre>
+              </div>
+            </div>
+          )}
+
+          {/* History Section */}
+          {history.length > 0 && (
+            <div className="history-section">
+              <h3 className="history-title">📚 Recent Chord Sheets</h3>
+              <div className="history-grid">
+                {history.map((sheet) => (
+                  <div 
+                    key={sheet.id} 
+                    className="history-item"
+                    onClick={() => loadFromHistory(sheet)}
+                  >
+                    <div className="history-title-text">{sheet.title}</div>
+                    <div className="history-date">
+                      {new Date(sheet.timestamp).toLocaleDateString()}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </main>
+
+      {/* Footer */}
+      <footer className="footer">
+        <div className="footer-content">
+          <p>🎵 Made with ❤️ for ukulele enthusiasts • Powered by AI</p>
+        </div>
+      </footer>
     </div>
   );
 };
-
-function App() {
-  return (
-    <div className="App">
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Home />}>
-            <Route index element={<Home />} />
-          </Route>
-        </Routes>
-      </BrowserRouter>
-    </div>
-  );
-}
 
 export default App;
