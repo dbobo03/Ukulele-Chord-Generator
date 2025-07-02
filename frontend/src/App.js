@@ -28,14 +28,14 @@ const App = () => {
     setError('');
     
     try {
-      const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
+      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.REACT_APP_DEEPSEEK_API_KEY}`
+          'Authorization': `Bearer ${process.env.REACT_APP_GROQ_API_KEY}`
         },
         body: JSON.stringify({
-          model: 'deepseek-chat',
+          model: 'llama3-8b-8192',
           messages: [
             {
               role: 'system',
