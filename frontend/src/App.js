@@ -39,30 +39,48 @@ const App = () => {
           messages: [
             {
               role: 'system',
-              content: `You are a professional ukulele instructor and chord sheet creator. Create accurate, well-formatted ukulele chord sheets with lyrics. Follow these rules:
+              content: `You are a master ukulele instructor and Hawaiian musician with 30+ years of experience. Create beautiful, authentic ukulele chord sheets that capture the aloha spirit. 
 
-1. UKULELE-SPECIFIC: Use only ukulele-friendly chords (C, G, Am, F, D, Em, A, E, Dm, etc.)
-2. CHORD POSITIONING: Place chords directly above the syllable where they change
-3. SONG STRUCTURE: Clearly label sections [Verse], [Chorus], [Bridge], [Outro]
-4. FORMAT: Use this exact format:
-   [Verse 1]
-   C              F           G           Am
-   Twinkle twinkle little star, how I wonder what you are
-   F              C           G           C
-   Up above the world so high, like a diamond in the sky
+🎵 UKULELE MASTERY RULES:
+1. AUTHENTIC CHORDS: Use traditional ukulele fingerings - C, G, Am, F, D, A, E, Em, Dm, C7, G7, F7
+2. HAWAIIAN STYLE: Include classic progressions like vi-IV-I-V and ii-V-I 
+3. PERFECT TIMING: Place chords exactly above the syllable where they change
+4. SONG STRUCTURE: Clearly mark [Intro], [Verse], [Chorus], [Bridge], [Outro] 
+5. STRUMMING: Suggest Island-style strum patterns (D-D-U-U-D-U)
+6. CHORD DIAGRAMS: Show finger positions for complex chords
+7. ALOHA SPIRIT: Add encouraging notes and Hawaiian musical tips
 
-5. FINGERING HINTS: Add simple chord diagrams for complex chords
-6. STRUM PATTERN: Suggest a basic strum pattern
-7. KEY: Choose ukulele-friendly keys (C, G, D, A, F major or their relative minors)
+🌺 FORMAT EXAMPLE:
+[Intro] - C - G - Am - F
 
-Create a complete, playable chord sheet.`
+[Verse 1]
+C              G           Am          F
+Somewhere over the rainbow, way up high
+C              G           Am         F
+There's a land that I heard of, once in a lullaby
+
+[Chorus]
+F              C           G           Am
+Somewhere over the rainbow, skies are blue
+F              C           G          Am        F
+And the dreams that you dare to dream really do come true
+
+🎸 Always include:
+- Key signature and capo info
+- Strum pattern suggestion  
+- Difficulty level (Beginner/Intermediate/Advanced)
+- Hawaiian musical wisdom
+
+Create something that brings joy and aloha to the player! 🌺`
             },
             {
               role: 'user',
-              content: `Create a ukulele chord sheet for: "${songInput}". If you don't know the exact song, create a chord progression and lyrics that would work well for a song with this title. Make it beginner-friendly but musically interesting.`
+              content: `Create a beautiful ukulele chord sheet for: "${songInput}". 
+
+If this is a real song, provide accurate chords and lyrics. If you don't know this exact song, create an inspiring chord progression and meaningful lyrics that capture the essence of the title. Make it perfect for ukulele - warm, melodic, and full of aloha spirit! 🌺🎵`
             }
           ],
-          max_tokens: 800,
+          max_tokens: 1000,
           temperature: 0.7
         })
       });
@@ -84,7 +102,7 @@ Create a complete, playable chord sheet.`
       
     } catch (err) {
       console.error('Error:', err);
-      setError('Failed to generate chord sheet. Please try again.');
+      setError('Oops! The ukulele spirits are taking a break 🌺 Please try again in a moment.');
     } finally {
       setLoading(false);
     }
@@ -93,45 +111,74 @@ Create a complete, playable chord sheet.`
   const exportToPDF = () => {
     if (!chordSheet) return;
     
-    // Create a new window for printing
+    // Create a new window for printing with Hawaiian styling
     const printWindow = window.open('', '_blank');
     printWindow.document.write(`
       <html>
         <head>
           <title>${chordSheet.title} - Ukulele Chords</title>
           <style>
+            @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
             body {
-              font-family: 'Courier New', monospace;
+              font-family: 'JetBrains Mono', monospace;
               margin: 40px;
-              line-height: 1.6;
-              color: #333;
+              line-height: 1.8;
+              color: #2c1810;
+              background: linear-gradient(135deg, #f4e4bc 0%, #f0dcb4 100%);
+            }
+            .header {
+              text-align: center;
+              margin-bottom: 30px;
+              border-bottom: 3px solid #d4a574;
+              padding-bottom: 20px;
             }
             h1 {
-              text-align: center;
-              color: #d97706;
-              border-bottom: 2px solid #d97706;
-              padding-bottom: 10px;
+              font-family: 'Caveat', cursive;
+              font-size: 2.5rem;
+              color: #ff6b35;
+              margin-bottom: 10px;
+              text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+            }
+            .subtitle {
+              color: #8b4513;
+              font-style: italic;
+              font-size: 1.1rem;
             }
             pre {
               white-space: pre-wrap;
               font-size: 14px;
-              background: #f9fafb;
-              padding: 20px;
-              border-radius: 8px;
-              border: 1px solid #e5e7eb;
+              background: rgba(255, 255, 255, 0.7);
+              padding: 30px;
+              border-radius: 15px;
+              border: 2px solid #d4a574;
+              line-height: 1.9;
+              box-shadow: 0 8px 32px rgba(139, 69, 19, 0.2);
             }
             .footer {
-              margin-top: 30px;
+              margin-top: 40px;
               text-align: center;
               font-size: 12px;
-              color: #6b7280;
+              color: #8b4513;
+              border-top: 2px solid #d4a574;
+              padding-top: 20px;
+            }
+            .decorative {
+              font-size: 1.5rem;
+              color: #ff6b35;
             }
           </style>
         </head>
         <body>
-          <h1>🎵 ${chordSheet.title}</h1>
+          <div class="header">
+            <h1>🌺 ${chordSheet.title} 🎵</h1>
+            <div class="subtitle">Ukulele Chord Sheet • Aloha Style</div>
+          </div>
           <pre>${chordSheet.content}</pre>
-          <div class="footer">Generated by Ukulele Chord Generator • ${new Date(chordSheet.timestamp).toLocaleDateString()}</div>
+          <div class="footer">
+            <div class="decorative">🏝️ 🎸 🌺 🎵 🏝️</div>
+            <div>Generated with Aloha • ${new Date(chordSheet.timestamp).toLocaleDateString()}</div>
+            <div style="margin-top: 10px; font-style: italic;">Play with joy and share the aloha spirit! 🌺</div>
+          </div>
         </body>
       </html>
     `);
@@ -144,15 +191,21 @@ Create a complete, playable chord sheet.`
     setSongInput(sheet.title);
   };
 
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      generateChordSheet();
+    }
+  };
+
   return (
     <div className="app">
       {/* Header */}
       <header className="header">
         <div className="header-content">
           <h1 className="title">
-            🎵 <span className="title-text">Ukulele Chord Generator</span>
+            <span className="title-text">Aloha Ukulele</span>
           </h1>
-          <p className="subtitle">Transform any song into beautiful ukulele chord sheets</p>
+          <p className="subtitle">Transform any song into beautiful Hawaiian-style chord sheets 🌺</p>
         </div>
       </header>
 
@@ -167,9 +220,9 @@ Create a complete, playable chord sheet.`
                 type="text"
                 value={songInput}
                 onChange={(e) => setSongInput(e.target.value)}
-                placeholder="Enter song title or 'Artist - Song Name'"
+                placeholder="🎵 Enter any song title... (e.g., 'Over the Rainbow', 'Perfect', 'Hallelujah')"
                 className="song-input"
-                onKeyPress={(e) => e.key === 'Enter' && generateChordSheet()}
+                onKeyPress={handleKeyPress}
               />
               <button 
                 onClick={generateChordSheet}
@@ -178,17 +231,17 @@ Create a complete, playable chord sheet.`
               >
                 {loading ? (
                   <span className="loading">
-                    <span className="spinner"></span> Generating...
+                    <span className="spinner"></span> Creating Magic...
                   </span>
                 ) : (
-                  'Generate Chords 🎸'
+                  '🌺 Generate Chords'
                 )}
               </button>
             </div>
             
             {error && (
               <div className="error-message">
-                ⚠️ {error}
+                🌺 {error}
               </div>
             )}
           </div>
@@ -197,10 +250,10 @@ Create a complete, playable chord sheet.`
           {chordSheet && (
             <div className="results-section">
               <div className="result-header">
-                <h2 className="result-title">🎵 {chordSheet.title}</h2>
+                <h2 className="result-title">{chordSheet.title}</h2>
                 <div className="result-actions">
                   <button onClick={exportToPDF} className="export-btn">
-                    📄 Export PDF
+                    🏝️ Export PDF
                   </button>
                   <span className="timestamp">
                     {new Date(chordSheet.timestamp).toLocaleDateString()}
@@ -217,7 +270,7 @@ Create a complete, playable chord sheet.`
           {/* History Section */}
           {history.length > 0 && (
             <div className="history-section">
-              <h3 className="history-title">📚 Recent Chord Sheets</h3>
+              <h3 className="history-title">Recent Island Jams</h3>
               <div className="history-grid">
                 {history.map((sheet) => (
                   <div 
@@ -225,7 +278,7 @@ Create a complete, playable chord sheet.`
                     className="history-item"
                     onClick={() => loadFromHistory(sheet)}
                   >
-                    <div className="history-title-text">{sheet.title}</div>
+                    <div className="history-title-text">🎵 {sheet.title}</div>
                     <div className="history-date">
                       {new Date(sheet.timestamp).toLocaleDateString()}
                     </div>
@@ -240,7 +293,7 @@ Create a complete, playable chord sheet.`
       {/* Footer */}
       <footer className="footer">
         <div className="footer-content">
-          <p>🎵 Made with ❤️ for ukulele enthusiasts • Powered by AI</p>
+          <p>🌺 Made with Aloha for Ukulele Lovers • Powered by AI Magic 🎵</p>
         </div>
       </footer>
     </div>
