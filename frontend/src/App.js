@@ -4,22 +4,14 @@ import './App.css';
 const App = () => {
   const [songInput, setSongInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [chordSheets, setChordSheets] = useState([]);
+  const [chordSheet, setChordSheet] = useState(null);
   const [error, setError] = useState('');
   const [history, setHistory] = useState([]);
   const [spotifyResults, setSpotifyResults] = useState([]);
   const [searchType, setSearchType] = useState('general'); // 'general', 'spotify', 'youtube'
   const [spotifyToken, setSpotifyToken] = useState(null);
-  const [selectedStyles, setSelectedStyles] = useState(['strumming']);
   const [showChordGraphs, setShowChordGraphs] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
-
-  const ukuleleStyles = [
-    { id: 'strumming', name: 'Strumming', icon: '🎸', description: 'Classic down-up strumming patterns' },
-    { id: 'fingerpicking', name: 'Fingerpicking', icon: '✋', description: 'Gentle finger-style playing' },
-    { id: 'classical', name: 'Classical', icon: '🎼', description: 'Traditional classical technique' },
-    { id: 'jazz', name: 'Jazz', icon: '🎷', description: 'Sophisticated jazz chord voicings' }
-  ];
 
   useEffect(() => {
     const savedHistory = localStorage.getItem('ukuleleHistory');
@@ -50,12 +42,11 @@ const App = () => {
   };
 
   const extractYouTubeTitle = (url) => {
-    // Simple YouTube title extraction from URL
     try {
       const urlObj = new URL(url);
       const videoId = urlObj.searchParams.get('v');
       if (videoId) {
-        // For now, return a placeholder - in production, you'd call YouTube API
+        // Extract title from URL or use video ID
         return `YouTube Video (${videoId})`;
       }
     } catch (err) {
@@ -96,109 +87,83 @@ const App = () => {
     setSpotifyResults([]);
   };
 
-  const saveToHistory = (sheets) => {
-    const historyEntry = {
-      title: songInput,
-      sheets: sheets,
-      timestamp: new Date().toISOString(),
-      id: Date.now()
-    };
-    const newHistory = [historyEntry, ...history.slice(0, 9)];
+  const saveToHistory = (sheet) => {
+    const newHistory = [sheet, ...history.slice(0, 9)];
     setHistory(newHistory);
     localStorage.setItem('ukuleleHistory', JSON.stringify(newHistory));
   };
 
-  const generateChordSheets = async () => {
-    if (!songInput.trim() || selectedStyles.length === 0) return;
+  const generateChordSheet = async () => {
+    if (!songInput.trim()) return;
     
     setLoading(true);
     setError('');
-    setChordSheets([]);
     
     try {
-      const generatedSheets = [];
-      
-      for (const style of selectedStyles) {
-        const styleInfo = ukuleleStyles.find(s => s.id === style);
-        
-        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${process.env.REACT_APP_GROQ_API_KEY}`
-          },
-          body: JSON.stringify({
-            model: 'llama3-8b-8192',
-            messages: [
-              {
-                role: 'system',
-                content: `You are a professional ukulele instructor specializing in ${styleInfo.name} technique. Create authentic ukulele chord sheets with expert-level ${style} arrangements.
+      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.REACT_APP_GROQ_API_KEY}`
+        },
+        body: JSON.stringify({
+          model: 'llama3-8b-8192',
+          messages: [
+            {
+              role: 'system',
+              content: `You are a professional ukulele instructor. Create clean, accurate ukulele chord sheets with chords positioned exactly above the lyrics.
 
-🎵 UKULELE EXPERTISE - ${styleInfo.name.toUpperCase()} STYLE:
+🎵 UKULELE CHORD SHEET RULES:
 
-${style === 'strumming' ? `
-STRUMMING PATTERNS:
-- Use classic patterns: D-D-U-U-D-U, D-U-X-U-D-U
-- Include palm muting and accent techniques
-- Focus on rhythm and groove
-- Suggest tempo variations
-` : style === 'fingerpicking' ? `
-FINGERPICKING TECHNIQUES:
-- Use PIMA fingering notation (P=thumb, I=index, M=middle, A=ring)
-- Create flowing arpeggiated patterns
-- Include bass-melody combinations
-- Focus on gentle, melodic flow
-` : style === 'classical' ? `
-CLASSICAL TECHNIQUE:
-- Use proper classical fingering positions
-- Include rest stroke and free stroke notation
-- Focus on precise timing and dynamics
-- Add ornamentations and grace notes
-` : `
-JAZZ STYLING:
-- Use sophisticated chord extensions (7ths, 9ths, 13ths)
-- Include chord substitutions and variations
-- Focus on syncopated rhythms
-- Add swing feel notation
-`}
+1. CHORD POSITIONING: Place chords directly above the syllable where they change
+2. UKULELE CHORDS: Use standard ukulele fingerings (C, G, Am, F, D, A, E, Em, Dm, C7, G7, F7, etc.)
+3. SONG STRUCTURE: Clearly mark [Intro], [Verse], [Chorus], [Bridge], [Outro]
+4. STRUMMING PATTERNS: Include clear strumming directions like:
+   - D-D-U-U-D-U (Down-Down-Up-Up-Down-Up)
+   - D-U-X-U-D-U (Down-Up-Mute-Up-Down-Up)
+   - D-U-D-U (simple down-up pattern)
+5. KEY & TEMPO: Specify key signature and suggested BPM
+6. DIFFICULTY: Mark as Beginner/Intermediate/Advanced
+${showChordGraphs ? '7. CHORD DIAGRAMS: Include simple fingering charts for any complex chords' : ''}
 
-CHORD REQUIREMENTS:
-1. AUTHENTIC CHORDS: Use ukulele-friendly voicings
-2. PERFECT TIMING: Place chords exactly above syllables
-3. SONG STRUCTURE: Clear [Intro], [Verse], [Chorus], [Bridge] sections
-4. TECHNIQUE NOTES: Include specific ${style} techniques
-5. DIFFICULTY: Mark appropriate skill level
-${showChordGraphs ? '6. CHORD DIAGRAMS: Include fingering charts for complex chords' : ''}
+EXAMPLE FORMAT:
+**Song Title** - Key of C - BPM: 120 - Difficulty: Beginner
+Strumming: D-D-U-U-D-U
 
-FORMAT: Professional music sheet with proper spacing and clear notation.`
-              },
-              {
-                role: 'user',
-                content: `Create a professional ${styleInfo.name} ukulele arrangement for: "${songInput}". 
+[Verse 1]
+C              G           Am          F
+Twinkle twinkle little star, how I wonder what you are
+C              G           Am         F
+Up above the world so high, like a diamond in the sky
 
-Make it authentic to the ${style} style with appropriate techniques, chord voicings, and playing instructions. If you don't know this exact song, create an inspiring arrangement that captures the essence of the title using ${style} technique.`
-              }
-            ],
-            max_tokens: 1200,
-            temperature: 0.7
-          })
-        });
+Focus on accuracy and readability. Make it perfect for ukulele players of all levels.`
+            },
+            {
+              role: 'user',
+              content: `Create a professional ukulele chord sheet for: "${songInput}". 
 
-        if (!response.ok) {
-          throw new Error(`API Error: ${response.status}`);
-        }
+If this is a real song, provide accurate chords and lyrics with proper chord positioning. If you don't know this exact song, create an inspiring chord progression and meaningful lyrics that fit the title. Include strumming patterns and make it perfect for ukulele.`
+            }
+          ],
+          max_tokens: 1000,
+          temperature: 0.7
+        })
+      });
 
-        const data = await response.json();
-        generatedSheets.push({
-          style: styleInfo,
-          content: data.choices[0].message.content,
-          timestamp: new Date().toISOString(),
-          id: Date.now() + Math.random()
-        });
+      if (!response.ok) {
+        throw new Error(`API Error: ${response.status}`);
       }
 
-      setChordSheets(generatedSheets);
-      saveToHistory(generatedSheets);
+      const data = await response.json();
+      const generatedSheet = {
+        title: songInput,
+        content: data.choices[0].message.content,
+        timestamp: new Date().toISOString(),
+        id: Date.now()
+      };
+
+      setChordSheet(generatedSheet);
+      saveToHistory(generatedSheet);
       
     } catch (err) {
       console.error('Error:', err);
@@ -208,14 +173,16 @@ Make it authentic to the ${style} style with appropriate techniques, chord voici
     }
   };
 
-  const exportToPDF = (sheet) => {
+  const exportToPDF = () => {
+    if (!chordSheet) return;
+    
     const printWindow = window.open('', '_blank');
     printWindow.document.write(`
       <html>
         <head>
-          <title>${songInput} - ${sheet.style.name} Style</title>
+          <title>${chordSheet.title} - Ukulele Chords</title>
           <style>
-            @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+            @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap');
             body {
               font-family: 'JetBrains Mono', monospace;
               margin: 40px;
@@ -230,19 +197,16 @@ Make it authentic to the ${style} style with appropriate techniques, chord voici
               padding-bottom: 20px;
             }
             h1 {
-              font-family: 'Caveat', cursive;
+              font-family: 'Roboto', sans-serif;
               font-size: 2.5rem;
               color: #8b4513;
               margin-bottom: 10px;
+              font-weight: 700;
             }
-            .style-badge {
-              background: #d4a574;
-              color: white;
-              padding: 8px 16px;
-              border-radius: 20px;
-              font-weight: bold;
-              display: inline-block;
-              margin: 10px 0;
+            .subtitle {
+              color: #8b4513;
+              font-size: 1.1rem;
+              opacity: 0.8;
             }
             pre {
               white-space: pre-wrap;
@@ -252,6 +216,7 @@ Make it authentic to the ${style} style with appropriate techniques, chord voici
               border-radius: 15px;
               border: 2px solid #8b4513;
               line-height: 1.9;
+              box-shadow: 0 8px 32px rgba(139, 69, 19, 0.2);
             }
             .footer {
               margin-top: 40px;
@@ -265,13 +230,13 @@ Make it authentic to the ${style} style with appropriate techniques, chord voici
         </head>
         <body>
           <div class="header">
-            <h1>🎸 ${songInput}</h1>
-            <div class="style-badge">${sheet.style.icon} ${sheet.style.name} Style</div>
+            <h1>🎸 ${chordSheet.title}</h1>
+            <div class="subtitle">Professional Ukulele Chord Sheet</div>
           </div>
-          <pre>${sheet.content}</pre>
+          <pre>${chordSheet.content}</pre>
           <div class="footer">
-            <div>Professional Ukulele Arrangement • ${new Date(sheet.timestamp).toLocaleDateString()}</div>
-            <div style="margin-top: 10px; font-style: italic;">Generated with precision and musicality</div>
+            <div>Generated ${new Date(chordSheet.timestamp).toLocaleDateString()}</div>
+            <div style="margin-top: 10px; font-style: italic;">Perfect for ukulele players of all levels</div>
           </div>
         </body>
       </html>
@@ -280,9 +245,9 @@ Make it authentic to the ${style} style with appropriate techniques, chord voici
     printWindow.print();
   };
 
-  const loadFromHistory = (historyItem) => {
-    setChordSheets(historyItem.sheets);
-    setSongInput(historyItem.title);
+  const loadFromHistory = (sheet) => {
+    setChordSheet(sheet);
+    setSongInput(sheet.title);
   };
 
   const handleInputChange = (e) => {
@@ -303,16 +268,8 @@ Make it authentic to the ${style} style with appropriate techniques, chord voici
 
   const handleKeyPress = (e) => {
     if (e.key === 'Enter') {
-      generateChordSheets();
+      generateChordSheet();
     }
-  };
-
-  const toggleStyle = (styleId) => {
-    setSelectedStyles(prev => 
-      prev.includes(styleId) 
-        ? prev.filter(id => id !== styleId)
-        : [...prev, styleId]
-    );
   };
 
   const getPlaceholderText = () => {
@@ -332,9 +289,9 @@ Make it authentic to the ${style} style with appropriate techniques, chord voici
       <header className="header">
         <div className="header-content">
           <h1 className="title">
-            <span className="title-text">Ukulele Master</span>
+            <span className="title-text">Ukulele Chord Generator</span>
           </h1>
-          <p className="subtitle">Professional chord sheets for every playing style 🎸</p>
+          <p className="subtitle">Clean chord sheets with perfect positioning 🎸</p>
         </div>
       </header>
 
@@ -404,36 +361,17 @@ Make it authentic to the ${style} style with appropriate techniques, chord voici
               </div>
             </div>
 
-            {/* Settings Panel */}
+            {/* Settings */}
             <div className="settings-panel">
               <button 
                 onClick={() => setShowSettings(!showSettings)}
                 className="settings-toggle"
               >
-                ⚙️ Style Settings
+                ⚙️ Settings
               </button>
               
               {showSettings && (
                 <div className="settings-content">
-                  {/* Style Selection */}
-                  <div className="setting-group">
-                    <label className="setting-label">Playing Styles</label>
-                    <div className="style-grid">
-                      {ukuleleStyles.map((style) => (
-                        <div 
-                          key={style.id}
-                          onClick={() => toggleStyle(style.id)}
-                          className={`style-card ${selectedStyles.includes(style.id) ? 'selected' : ''}`}
-                        >
-                          <div className="style-icon">{style.icon}</div>
-                          <div className="style-name">{style.name}</div>
-                          <div className="style-desc">{style.description}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Chord Graphs Toggle */}
                   <div className="setting-group">
                     <label className="setting-label">
                       <input
@@ -452,16 +390,16 @@ Make it authentic to the ${style} style with appropriate techniques, chord voici
             {/* Generate Button */}
             <div className="generate-section">
               <button 
-                onClick={generateChordSheets}
-                disabled={loading || !songInput.trim() || selectedStyles.length === 0}
+                onClick={generateChordSheet}
+                disabled={loading || !songInput.trim()}
                 className="generate-btn"
               >
                 {loading ? (
                   <span className="loading">
-                    <span className="spinner"></span> Creating {selectedStyles.length} Style{selectedStyles.length > 1 ? 's' : ''}...
+                    <span className="spinner"></span> Generating...
                   </span>
                 ) : (
-                  `🎸 Generate ${selectedStyles.length} Style${selectedStyles.length > 1 ? 's' : ''}`
+                  '🎸 Generate Chord Sheet'
                 )}
               </button>
             </div>
@@ -474,34 +412,22 @@ Make it authentic to the ${style} style with appropriate techniques, chord voici
           </div>
 
           {/* Results Section */}
-          {chordSheets.length > 0 && (
+          {chordSheet && (
             <div className="results-section">
-              <div className="results-header">
-                <h2 className="results-title">🎵 {songInput}</h2>
-                <div className="results-meta">
-                  {chordSheets.length} style{chordSheets.length > 1 ? 's' : ''} generated
+              <div className="result-header">
+                <h2 className="result-title">🎵 {chordSheet.title}</h2>
+                <div className="result-actions">
+                  <button onClick={exportToPDF} className="export-btn">
+                    📄 Export PDF
+                  </button>
+                  <span className="timestamp">
+                    {new Date(chordSheet.timestamp).toLocaleDateString()}
+                  </span>
                 </div>
               </div>
               
-              <div className="chord-sheets-grid">
-                {chordSheets.map((sheet) => (
-                  <div key={sheet.id} className="chord-sheet-card">
-                    <div className="sheet-header">
-                      <div className="style-badge">
-                        {sheet.style.icon} {sheet.style.name}
-                      </div>
-                      <button 
-                        onClick={() => exportToPDF(sheet)} 
-                        className="export-btn"
-                      >
-                        📄 PDF
-                      </button>
-                    </div>
-                    <div className="chord-sheet">
-                      <pre className="chord-content">{sheet.content}</pre>
-                    </div>
-                  </div>
-                ))}
+              <div className="chord-sheet">
+                <pre className="chord-content">{chordSheet.content}</pre>
               </div>
             </div>
           )}
@@ -511,15 +437,15 @@ Make it authentic to the ${style} style with appropriate techniques, chord voici
             <div className="history-section">
               <h3 className="history-title">📚 Recent Sessions</h3>
               <div className="history-grid">
-                {history.map((item) => (
+                {history.map((sheet) => (
                   <div 
-                    key={item.id} 
+                    key={sheet.id} 
                     className="history-item"
-                    onClick={() => loadFromHistory(item)}
+                    onClick={() => loadFromHistory(sheet)}
                   >
-                    <div className="history-title-text">🎵 {item.title}</div>
-                    <div className="history-meta">
-                      {item.sheets.length} style{item.sheets.length > 1 ? 's' : ''} • {new Date(item.timestamp).toLocaleDateString()}
+                    <div className="history-title-text">🎵 {sheet.title}</div>
+                    <div className="history-date">
+                      {new Date(sheet.timestamp).toLocaleDateString()}
                     </div>
                   </div>
                 ))}
@@ -532,7 +458,7 @@ Make it authentic to the ${style} style with appropriate techniques, chord voici
       {/* Footer */}
       <footer className="footer">
         <div className="footer-content">
-          <p>🎸 Professional Ukulele Tool • Powered by AI</p>
+          <p>🎸 Clean Ukulele Chord Sheets • Powered by AI</p>
         </div>
       </footer>
     </div>

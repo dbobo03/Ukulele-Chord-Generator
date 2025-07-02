@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Caveat:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
 * {
   margin: 0;
@@ -7,18 +7,11 @@
 }
 
 :root {
-  /* Ukulele Wood & Warm Tones */
+  /* Wood & Natural Tones */
   --wood-light: #f4e4bc;
   --wood-medium: #d4a574;
   --wood-dark: #8b4513;
-  --mahogany: #c04000;
-  
-  /* Hawaiian Sunset Colors */
-  --sunset-orange: #ff6b35;
-  --sunset-coral: #ff8c42;
-  --sunset-yellow: #ffd23f;
-  --tropical-teal: #06a77d;
-  --ocean-blue: #005f73;
+  --wood-darker: #654321;
   
   /* UI Colors */
   --bg-primary: linear-gradient(135deg, #2c1810 0%, #1a0f0a 50%, #0f0906 100%);
@@ -27,21 +20,20 @@
   --text-primary: var(--wood-light);
   --text-secondary: var(--wood-medium);
   --text-muted: rgba(212, 165, 116, 0.6);
-  --accent-primary: var(--sunset-orange);
-  --accent-secondary: var(--sunset-coral);
-  --accent-hover: var(--sunset-yellow);
+  --accent-primary: var(--wood-medium);
+  --accent-secondary: var(--wood-dark);
+  --accent-hover: var(--wood-light);
   --border-color: rgba(212, 165, 116, 0.3);
-  --success-color: var(--tropical-teal);
-  --error-color: #d2691e;
+  --success-color: #8fbc8f;
+  --error-color: #cd853f;
   
   /* Shadows & Effects */
-  --shadow-warm: 0 8px 32px rgba(255, 107, 53, 0.2);
   --shadow-wood: 0 8px 32px rgba(139, 69, 19, 0.3);
-  --glow-sunset: 0 0 20px rgba(255, 107, 53, 0.3);
+  --shadow-soft: 0 4px 16px rgba(139, 69, 19, 0.2);
 }
 
 body {
-  font-family: 'Fredoka', sans-serif;
+  font-family: 'Roboto', sans-serif;
   background: var(--bg-primary);
   color: var(--text-primary);
   min-height: 100vh;
@@ -50,7 +42,7 @@ body {
   overflow-x: hidden;
 }
 
-/* Tropical Background Pattern */
+/* Subtle wood grain background */
 body::before {
   content: '';
   position: fixed;
@@ -59,13 +51,11 @@ body::before {
   width: 100%;
   height: 100%;
   background-image: 
-    url('https://images.unsplash.com/photo-1615445679216-c724159ce92b?w=1920&q=20'),
-    radial-gradient(circle at 20% 80%, rgba(255, 107, 53, 0.1) 0%, transparent 50%),
-    radial-gradient(circle at 80% 20%, rgba(6, 167, 125, 0.1) 0%, transparent 50%);
-  background-size: cover, 800px 800px, 600px 600px;
-  background-position: center, bottom left, top right;
-  background-repeat: no-repeat, no-repeat, no-repeat;
-  opacity: 0.2;
+    radial-gradient(circle at 20% 80%, rgba(212, 165, 116, 0.05) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(139, 69, 19, 0.05) 0%, transparent 50%);
+  background-size: 800px 800px, 600px 600px;
+  background-position: bottom left, top right;
+  opacity: 0.8;
   z-index: -1;
 }
 
@@ -77,12 +67,12 @@ body::before {
   z-index: 1;
 }
 
-/* Header Styles - Ukulele Inspired */
+/* Header - Clean Wood Style */
 .header {
   background: linear-gradient(135deg, 
     rgba(139, 69, 19, 0.8) 0%, 
     rgba(212, 165, 116, 0.6) 50%,
-    rgba(255, 107, 53, 0.4) 100%);
+    rgba(139, 69, 19, 0.4) 100%);
   backdrop-filter: blur(20px);
   border-bottom: 3px solid var(--wood-medium);
   padding: 3rem 0;
@@ -90,29 +80,15 @@ body::before {
   overflow: hidden;
 }
 
-.header::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: url('https://images.unsplash.com/photo-1585639557135-abe9aaf7c925?w=1920&q=30');
-  background-size: cover;
-  background-position: center;
-  opacity: 0.15;
-  z-index: -1;
-}
-
-/* Floating ukulele silhouettes */
+/* Subtle musical note animation */
 .header::after {
-  content: '🎵 🌺 🎸 🌴 🎵';
+  content: '♪ ♫ ♪ ♫ ♪';
   position: absolute;
   top: 20px;
   right: 20px;
-  font-size: 2rem;
-  opacity: 0.3;
-  animation: float 6s ease-in-out infinite;
+  font-size: 1.5rem;
+  opacity: 0.2;
+  animation: float 8s ease-in-out infinite;
 }
 
 .header-content {
@@ -125,40 +101,29 @@ body::before {
 }
 
 .title {
-  font-family: 'Caveat', cursive;
-  font-size: 4rem;
+  font-family: 'Roboto', sans-serif;
+  font-size: 3.5rem;
   font-weight: 700;
   margin-bottom: 1rem;
   background: linear-gradient(135deg, 
-    var(--sunset-yellow) 0%, 
-    var(--sunset-orange) 50%, 
-    var(--mahogany) 100%);
+    var(--wood-light) 0%, 
+    var(--wood-medium) 50%, 
+    var(--wood-dark) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   animation: fadeInUp 0.8s ease;
-  text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
   position: relative;
 }
 
 .title::before {
-  content: '🎵';
+  content: '🎸';
   position: absolute;
   left: -60px;
   top: 50%;
   transform: translateY(-50%);
-  font-size: 3rem;
-  animation: bounce 2s infinite;
-}
-
-.title::after {
-  content: '🌺';
-  position: absolute;
-  right: -60px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 3rem;
-  animation: bounce 2s infinite 1s;
+  font-size: 2.5rem;
+  -webkit-text-fill-color: var(--wood-medium);
 }
 
 .title-text {
@@ -166,12 +131,11 @@ body::before {
 }
 
 .subtitle {
-  font-size: 1.3rem;
+  font-size: 1.2rem;
   color: var(--wood-light);
   font-weight: 400;
   animation: fadeInUp 0.8s ease 0.2s both;
-  text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
-  font-style: italic;
+  opacity: 0.9;
 }
 
 /* Main Content */
@@ -187,78 +151,60 @@ body::before {
   padding: 0 2rem;
 }
 
-/* Input Section - Hawaiian Card Style */
+/* Search Type Selector */
+.search-type-selector {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  animation: fadeInUp 0.8s ease 0.3s both;
+}
+
+.search-type-btn {
+  padding: 1rem 2rem;
+  border: 2px solid var(--wood-medium);
+  border-radius: 12px;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  font-family: 'Roboto', sans-serif;
+}
+
+.search-type-btn.active {
+  background: linear-gradient(135deg, var(--wood-medium), var(--wood-dark));
+  color: white;
+  border-color: var(--wood-dark);
+  box-shadow: var(--shadow-soft);
+}
+
+.search-type-btn:hover {
+  transform: translateY(-2px);
+  border-color: var(--wood-dark);
+  background: var(--bg-tertiary);
+}
+
+/* Input Section */
 .input-section {
   margin-bottom: 4rem;
   animation: fadeInUp 0.8s ease 0.4s both;
 }
 
-/* Search Mode Toggle */
-.search-mode-toggle {
-  display: flex;
-  justify-content: center;
-  gap: 1rem;
-  margin-bottom: 2rem;
-}
-
-.mode-btn {
-  padding: 1rem 2rem;
-  border: 2px solid var(--wood-medium);
-  border-radius: 20px;
-  background: var(--bg-secondary);
-  color: var(--text-secondary);
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  backdrop-filter: blur(10px);
-}
-
-.mode-btn.active {
-  background: linear-gradient(135deg, var(--sunset-orange), var(--sunset-coral));
-  color: white;
-  border-color: var(--mahogany);
-  box-shadow: var(--shadow-warm);
-}
-
-.mode-btn:hover {
-  transform: translateY(-2px);
-  border-color: var(--sunset-orange);
-}
-
 .search-container {
-  display: flex;
-  gap: 1rem;
   max-width: 700px;
-  margin: 0 auto;
+  margin: 0 auto 2rem;
   background: var(--bg-secondary);
   padding: 2rem;
-  border-radius: 25px;
+  border-radius: 20px;
   border: 2px solid var(--wood-medium);
   box-shadow: var(--shadow-wood);
   backdrop-filter: blur(15px);
   position: relative;
-  overflow: visible;
-}
-
-.search-container::before {
-  content: '';
-  position: absolute;
-  top: -2px;
-  left: -2px;
-  right: -2px;
-  bottom: -2px;
-  background: linear-gradient(45deg, 
-    var(--sunset-orange), 
-    var(--sunset-coral), 
-    var(--sunset-yellow), 
-    var(--tropical-teal));
-  border-radius: 25px;
-  z-index: -1;
-  opacity: 0.6;
 }
 
 .input-wrapper {
-  flex: 1;
   position: relative;
 }
 
@@ -267,21 +213,18 @@ body::before {
   padding: 1.2rem 1.8rem;
   background: rgba(244, 228, 188, 0.9);
   border: 2px solid var(--wood-medium);
-  border-radius: 20px;
+  border-radius: 15px;
   color: var(--wood-dark);
   font-size: 1.1rem;
   font-weight: 500;
   transition: all 0.3s ease;
   outline: none;
-  box-shadow: inset 0 2px 5px rgba(139, 69, 19, 0.2);
+  font-family: 'Roboto', sans-serif;
 }
 
 .song-input:focus {
-  border-color: var(--sunset-orange);
-  box-shadow: 
-    inset 0 2px 5px rgba(139, 69, 19, 0.2),
-    0 0 0 3px rgba(255, 107, 53, 0.2),
-    var(--glow-sunset);
+  border-color: var(--wood-dark);
+  box-shadow: 0 0 0 3px rgba(139, 69, 19, 0.2);
   transform: translateY(-2px);
   background: var(--wood-light);
 }
@@ -289,7 +232,6 @@ body::before {
 .song-input::placeholder {
   color: var(--wood-dark);
   opacity: 0.7;
-  font-style: italic;
 }
 
 /* Spotify Search Results */
@@ -301,7 +243,7 @@ body::before {
   background: rgba(244, 228, 188, 0.98);
   border: 2px solid var(--wood-medium);
   border-top: none;
-  border-radius: 0 0 20px 20px;
+  border-radius: 0 0 15px 15px;
   max-height: 300px;
   overflow-y: auto;
   z-index: 10;
@@ -319,7 +261,7 @@ body::before {
 }
 
 .spotify-result-item:hover {
-  background: rgba(255, 107, 53, 0.2);
+  background: rgba(139, 69, 19, 0.1);
   transform: translateX(5px);
 }
 
@@ -339,7 +281,7 @@ body::before {
 
 .track-artist {
   font-size: 0.9rem;
-  color: var(--mahogany);
+  color: var(--wood-darker);
   opacity: 0.8;
 }
 
@@ -351,49 +293,85 @@ body::before {
   box-shadow: 0 2px 8px rgba(0,0,0,0.2);
 }
 
+/* Settings Panel */
+.settings-panel {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.settings-toggle {
+  padding: 0.8rem 1.5rem;
+  background: var(--bg-secondary);
+  border: 2px solid var(--wood-medium);
+  border-radius: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: 'Roboto', sans-serif;
+}
+
+.settings-toggle:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--wood-dark);
+}
+
+.settings-content {
+  margin-top: 1rem;
+  padding: 1.5rem;
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+}
+
+.setting-group {
+  margin-bottom: 1rem;
+}
+
+.setting-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.setting-checkbox {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--wood-medium);
+}
+
+/* Generate Section */
+.generate-section {
+  text-align: center;
+}
+
 .generate-btn {
-  padding: 1.2rem 2.5rem;
+  padding: 1.2rem 3rem;
   background: linear-gradient(135deg, 
-    var(--sunset-orange) 0%, 
-    var(--sunset-coral) 100%);
+    var(--wood-medium) 0%, 
+    var(--wood-dark) 100%);
   color: white;
-  border: 2px solid var(--mahogany);
-  border-radius: 20px;
+  border: 2px solid var(--wood-darker);
+  border-radius: 15px;
   font-weight: 600;
   font-size: 1.1rem;
   cursor: pointer;
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
-  min-width: 200px;
-  text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
-  box-shadow: var(--shadow-warm);
-}
-
-.generate-btn::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, 
-    transparent, 
-    rgba(255, 255, 255, 0.3), 
-    transparent);
-  transition: left 0.5s;
+  min-width: 250px;
+  box-shadow: var(--shadow-wood);
+  font-family: 'Roboto', sans-serif;
 }
 
 .generate-btn:hover:not(:disabled) {
   transform: translateY(-3px);
-  box-shadow: var(--shadow-warm), var(--glow-sunset);
+  box-shadow: var(--shadow-wood), 0 0 20px rgba(139, 69, 19, 0.3);
   background: linear-gradient(135deg, 
-    var(--sunset-coral) 0%, 
-    var(--sunset-yellow) 100%);
-}
-
-.generate-btn:hover:not(:disabled)::before {
-  left: 100%;
+    var(--wood-dark) 0%, 
+    var(--wood-darker) 100%);
 }
 
 .generate-btn:disabled {
@@ -405,6 +383,7 @@ body::before {
 .loading {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.8rem;
 }
 
@@ -420,15 +399,15 @@ body::before {
 .error-message {
   margin-top: 1.5rem;
   padding: 1.2rem;
-  background: rgba(210, 105, 30, 0.2);
+  background: rgba(205, 133, 63, 0.2);
   border: 2px solid var(--error-color);
-  border-radius: 15px;
+  border-radius: 12px;
   color: var(--wood-light);
   text-align: center;
   backdrop-filter: blur(10px);
 }
 
-/* Results Section - Wood Panel Style */
+/* Results Section */
 .results-section {
   margin-bottom: 4rem;
   animation: fadeInUp 0.6s ease;
@@ -444,11 +423,10 @@ body::before {
 }
 
 .result-title {
-  font-family: 'Caveat', cursive;
-  font-size: 2.5rem;
+  font-family: 'Roboto', sans-serif;
+  font-size: 2.2rem;
   font-weight: 600;
-  color: var(--sunset-orange);
-  text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+  color: var(--wood-medium);
   position: relative;
 }
 
@@ -464,44 +442,42 @@ body::before {
 }
 
 .export-btn {
-  padding: 1rem 2rem;
+  padding: 0.8rem 1.5rem;
   background: linear-gradient(135deg, 
     var(--wood-medium) 0%, 
     var(--wood-dark) 100%);
-  color: var(--wood-light);
-  border: 2px solid var(--mahogany);
-  border-radius: 15px;
+  color: white;
+  border: 2px solid var(--wood-darker);
+  border-radius: 10px;
   cursor: pointer;
   transition: all 0.3s ease;
   font-weight: 600;
-  box-shadow: var(--shadow-wood);
+  box-shadow: var(--shadow-soft);
+  font-family: 'Roboto', sans-serif;
 }
 
 .export-btn:hover {
   background: linear-gradient(135deg, 
-    var(--mahogany) 0%, 
-    var(--wood-dark) 100%);
+    var(--wood-dark) 0%, 
+    var(--wood-darker) 100%);
   transform: translateY(-2px);
-  box-shadow: var(--shadow-wood), var(--glow-sunset);
 }
 
 .timestamp {
   color: var(--text-muted);
   font-size: 0.9rem;
-  font-style: italic;
 }
 
-/* Chord Sheet - Music Paper Style */
+/* Chord Sheet */
 .chord-sheet {
   background: linear-gradient(135deg, 
     rgba(244, 228, 188, 0.95) 0%, 
     rgba(240, 220, 180, 0.9) 100%);
   border: 3px solid var(--wood-medium);
-  border-radius: 20px;
+  border-radius: 15px;
   padding: 3rem;
   box-shadow: var(--shadow-wood);
   position: relative;
-  overflow: hidden;
 }
 
 .chord-sheet::before {
@@ -510,24 +486,11 @@ body::before {
   top: 0;
   left: 0;
   right: 0;
-  height: 6px;
-  background: repeating-linear-gradient(90deg,
-    var(--sunset-orange) 0px,
-    var(--sunset-orange) 10px,
-    var(--sunset-coral) 10px,
-    var(--sunset-coral) 20px,
-    var(--sunset-yellow) 20px,
-    var(--sunset-yellow) 30px);
-}
-
-.chord-sheet::after {
-  content: '🌺';
-  position: absolute;
-  top: 20px;
-  right: 30px;
-  font-size: 2rem;
-  opacity: 0.3;
-  animation: float 4s ease-in-out infinite;
+  height: 4px;
+  background: linear-gradient(90deg,
+    var(--wood-medium) 0%,
+    var(--wood-dark) 50%,
+    var(--wood-medium) 100%);
 }
 
 .chord-content {
@@ -539,30 +502,20 @@ body::before {
   background: none;
   overflow-x: auto;
   margin: 0;
-  text-shadow: 1px 1px 1px rgba(255, 255, 255, 0.5);
 }
 
-/* History Section - Hawaiian Card Grid */
+/* History Section */
 .history-section {
   animation: fadeInUp 0.6s ease 0.2s both;
 }
 
 .history-title {
-  font-family: 'Caveat', cursive;
-  font-size: 2rem;
+  font-family: 'Roboto', sans-serif;
+  font-size: 1.8rem;
   font-weight: 600;
   margin-bottom: 2rem;
   color: var(--wood-medium);
   text-align: center;
-  position: relative;
-}
-
-.history-title::before {
-  content: '🏝️ ';
-}
-
-.history-title::after {
-  content: ' 🏝️';
 }
 
 .history-grid {
@@ -574,37 +527,18 @@ body::before {
 .history-item {
   background: var(--bg-secondary);
   border: 2px solid var(--wood-medium);
-  border-radius: 20px;
+  border-radius: 15px;
   padding: 2rem;
   cursor: pointer;
   transition: all 0.3s ease;
   position: relative;
-  overflow: hidden;
   backdrop-filter: blur(15px);
 }
 
-.history-item::before {
-  content: '';
-  position: absolute;
-  top: -2px;
-  left: -100%;
-  width: 100%;
-  height: 4px;
-  background: linear-gradient(90deg, 
-    var(--sunset-orange), 
-    var(--sunset-coral), 
-    var(--sunset-yellow));
-  transition: left 0.5s ease;
-}
-
 .history-item:hover {
-  transform: translateY(-5px) rotate(1deg);
-  box-shadow: var(--shadow-wood), var(--glow-sunset);
-  border-color: var(--sunset-orange);
-}
-
-.history-item:hover::before {
-  left: 0;
+  transform: translateY(-5px);
+  box-shadow: var(--shadow-wood);
+  border-color: var(--wood-dark);
 }
 
 .history-title-text {
@@ -620,14 +554,13 @@ body::before {
 .history-date {
   color: var(--text-muted);
   font-size: 0.9rem;
-  font-style: italic;
 }
 
-/* Footer - Tropical */
+/* Footer */
 .footer {
   background: linear-gradient(135deg, 
     rgba(139, 69, 19, 0.8) 0%, 
-    rgba(6, 167, 125, 0.6) 100%);
+    rgba(139, 69, 19, 0.6) 100%);
   backdrop-filter: blur(20px);
   border-top: 3px solid var(--wood-medium);
   padding: 2rem 0;
@@ -666,19 +599,7 @@ body::before {
     transform: translateY(0px);
   }
   50% {
-    transform: translateY(-10px);
-  }
-}
-
-@keyframes bounce {
-  0%, 20%, 50%, 80%, 100% {
-    transform: translateY(0);
-  }
-  40% {
-    transform: translateY(-10px);
-  }
-  60% {
-    transform: translateY(-5px);
+    transform: translateY(-8px);
   }
 }
 
@@ -688,8 +609,7 @@ body::before {
     font-size: 2.8rem;
   }
   
-  .title::before,
-  .title::after {
+  .title::before {
     display: none;
   }
   
@@ -701,14 +621,14 @@ body::before {
     padding: 0 1rem;
   }
   
-  .search-container {
-    flex-direction: column;
-    padding: 1.5rem;
-  }
-  
-  .search-mode-toggle {
+  .search-type-selector {
     flex-direction: column;
     align-items: center;
+    gap: 0.5rem;
+  }
+  
+  .search-container {
+    padding: 1.5rem;
   }
   
   .result-header {
@@ -736,36 +656,36 @@ body::before {
   }
 }
 
-/* Custom Scrollbar - Wood Theme */
+/* Custom Scrollbar */
 ::-webkit-scrollbar {
-  width: 12px;
+  width: 10px;
 }
 
 ::-webkit-scrollbar-track {
   background: var(--wood-dark);
-  border-radius: 6px;
+  border-radius: 5px;
 }
 
 ::-webkit-scrollbar-thumb {
   background: linear-gradient(135deg, 
     var(--wood-medium), 
-    var(--sunset-orange));
-  border-radius: 6px;
-  border: 2px solid var(--wood-dark);
+    var(--wood-dark));
+  border-radius: 5px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
   background: linear-gradient(135deg, 
-    var(--sunset-orange), 
-    var(--sunset-coral));
+    var(--wood-dark), 
+    var(--wood-darker));
 }
 
-/* Focus States for Accessibility */
+/* Focus States */
 .generate-btn:focus,
 .export-btn:focus,
 .history-item:focus,
-.mode-btn:focus {
-  outline: 3px solid var(--sunset-yellow);
+.search-type-btn:focus,
+.settings-toggle:focus {
+  outline: 3px solid var(--wood-light);
   outline-offset: 3px;
 }
 
