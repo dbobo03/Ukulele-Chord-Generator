@@ -7,13 +7,70 @@ const App = () => {
   const [chordSheet, setChordSheet] = useState(null);
   const [error, setError] = useState('');
   const [history, setHistory] = useState([]);
+  const [spotifyResults, setSpotifyResults] = useState([]);
+  const [searchMode, setSearchMode] = useState('manual'); // 'manual' or 'spotify'
+  const [spotifyToken, setSpotifyToken] = useState(null);
 
   useEffect(() => {
     const savedHistory = localStorage.getItem('ukuleleHistory');
     if (savedHistory) {
       setHistory(JSON.parse(savedHistory));
     }
+    getSpotifyToken();
   }, []);
+
+  const getSpotifyToken = async () => {
+    try {
+      const response = await fetch('https://accounts.spotify.com/api/token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Authorization': `Basic ${btoa(process.env.REACT_APP_SPOTIFY_CLIENT_ID + ':' + process.env.REACT_APP_SPOTIFY_CLIENT_SECRET)}`
+        },
+        body: 'grant_type=client_credentials'
+      });
+      
+      const data = await response.json();
+      if (data.access_token) {
+        setSpotifyToken(data.access_token);
+      }
+    } catch (err) {
+      console.error('Failed to get Spotify token:', err);
+    }
+  };
+
+  const searchSpotify = async (query) => {
+    if (!spotifyToken || !query.trim()) {
+      setSpotifyResults([]);
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=track&limit=10`,
+        {
+          headers: {
+            'Authorization': `Bearer ${spotifyToken}`
+          }
+        }
+      );
+
+      const data = await response.json();
+      if (data.tracks && data.tracks.items) {
+        setSpotifyResults(data.tracks.items);
+      }
+    } catch (err) {
+      console.error('Spotify search failed:', err);
+      setSpotifyResults([]);
+    }
+  };
+
+  const selectSpotifyTrack = (track) => {
+    const songTitle = `${track.artists[0].name} - ${track.name}`;
+    setSongInput(songTitle);
+    setSpotifyResults([]);
+    setSearchMode('manual');
+  };
 
   const saveToHistory = (sheet) => {
     const newHistory = [sheet, ...history.slice(0, 9)]; // Keep last 10
@@ -191,10 +248,27 @@ If this is a real song, provide accurate chords and lyrics. If you don't know th
     setSongInput(sheet.title);
   };
 
+  const handleInputChange = (e) => {
+    const value = e.target.value;
+    setSongInput(value);
+    
+    if (searchMode === 'spotify' && value.length > 2) {
+      searchSpotify(value);
+    } else {
+      setSpotifyResults([]);
+    }
+  };
+
   const handleKeyPress = (e) => {
     if (e.key === 'Enter') {
       generateChordSheet();
     }
+  };
+
+  const toggleSearchMode = () => {
+    setSearchMode(searchMode === 'manual' ? 'spotify' : 'manual');
+    setSpotifyResults([]);
+    setSongInput('');
   };
 
   return (
@@ -215,15 +289,61 @@ If this is a real song, provide accurate chords and lyrics. If you don't know th
           
           {/* Input Section */}
           <div className="input-section">
+            <div className="search-mode-toggle">
+              <button 
+                onClick={toggleSearchMode}
+                className={`mode-btn ${searchMode === 'manual' ? 'active' : ''}`}
+              >
+                ✏️ Manual Input
+              </button>
+              <button 
+                onClick={toggleSearchMode}
+                className={`mode-btn ${searchMode === 'spotify' ? 'active' : ''}`}
+              >
+                🎵 Spotify Search
+              </button>
+            </div>
+
             <div className="search-container">
-              <input
-                type="text"
-                value={songInput}
-                onChange={(e) => setSongInput(e.target.value)}
-                placeholder="🎵 Enter any song title... (e.g., 'Over the Rainbow', 'Perfect', 'Hallelujah')"
-                className="song-input"
-                onKeyPress={handleKeyPress}
-              />
+              <div className="input-wrapper">
+                <input
+                  type="text"
+                  value={songInput}
+                  onChange={handleInputChange}
+                  placeholder={searchMode === 'spotify' 
+                    ? "🎵 Search Spotify songs... (e.g., 'Perfect Ed Sheeran')" 
+                    : "🎵 Enter any song title... (e.g., 'Over the Rainbow', 'Perfect', 'Hallelujah')"
+                  }
+                  className="song-input"
+                  onKeyPress={handleKeyPress}
+                />
+                
+                {/* Spotify Search Results */}
+                {searchMode === 'spotify' && spotifyResults.length > 0 && (
+                  <div className="spotify-results">
+                    {spotifyResults.map((track) => (
+                      <div 
+                        key={track.id}
+                        className="spotify-result-item"
+                        onClick={() => selectSpotifyTrack(track)}
+                      >
+                        <div className="track-info">
+                          <div className="track-name">{track.name}</div>
+                          <div className="track-artist">{track.artists.map(a => a.name).join(', ')}</div>
+                        </div>
+                        {track.album.images[2] && (
+                          <img 
+                            src={track.album.images[2].url} 
+                            alt={track.album.name}
+                            className="album-art"
+                          />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              
               <button 
                 onClick={generateChordSheet}
                 disabled={loading || !songInput.trim()}
