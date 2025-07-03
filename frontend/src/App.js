@@ -76,29 +76,6 @@ const App = () => {
     setShowSpotifyLogin(true);
   };
 
-  const handleSearchTypeChange = (newType) => {
-    if (songInput.trim()) {
-      setPreviousSearch({
-        query: songInput,
-        type: searchType,
-        timestamp: Date.now()
-      });
-    }
-    
-    // Show Spotify login if switching to Spotify and not logged in
-    if (newType === 'spotify' && !spotifyUser) {
-      setShowSpotifyLogin(true);
-    }
-    
-    setSongInput('');
-    setSpotifyResults([]);
-    setSearchType(newType);
-    setError('');
-    setLyricsSource('found');
-    setManualLyrics('');
-    setLyricsSearchStatus('');
-  };
-
   const getSpotifyToken = async () => {
     try {
       const response = await fetch('https://accounts.spotify.com/api/token', {
