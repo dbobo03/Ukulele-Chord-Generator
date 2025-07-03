@@ -883,6 +883,11 @@ Format as a professional lead sheet with clear sections and detailed performance
       });
     }
     
+    // Show Spotify login if switching to Spotify and not logged in
+    if (newType === 'spotify' && !spotifyUser) {
+      setShowSpotifyLogin(true);
+    }
+    
     setSongInput('');
     setSpotifyResults([]);
     setSearchType(newType);
