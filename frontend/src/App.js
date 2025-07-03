@@ -19,6 +19,11 @@ const App = () => {
   const [lyricsSource, setLyricsSource] = useState('found');
   const [manualLyrics, setManualLyrics] = useState('');
   const [lyricsSearchStatus, setLyricsSearchStatus] = useState('');
+  const [spotifyUser, setSpotifyUser] = useState(null);
+  const [showSpotifyLogin, setShowSpotifyLogin] = useState(false);
+  const [userPlaylists, setUserPlaylists] = useState([]);
+  const [userSavedTracks, setUserSavedTracks] = useState([]);
+  const [spotifyAuthError, setSpotifyAuthError] = useState('');
 
   // Ukulele chord fingerings database
   const ukuleleChords = {
