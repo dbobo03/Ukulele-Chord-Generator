@@ -313,7 +313,15 @@ const App = () => {
   };
 
   const searchSpotify = async (query) => {
-    if (!spotifyToken || !query.trim()) {
+    if (!query.trim()) {
+      setSpotifyResults([]);
+      return;
+    }
+
+    // Use personal token if logged in, otherwise use client credentials
+    let token = spotifyUser ? SpotifyAuth.getAccessToken() : spotifyToken;
+    
+    if (!token) {
       setSpotifyResults([]);
       return;
     }
@@ -323,7 +331,7 @@ const App = () => {
         `https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=track&limit=10&market=US`,
         {
           headers: {
-            'Authorization': `Bearer ${spotifyToken}`
+            'Authorization': `Bearer ${token}`
           }
         }
       );
