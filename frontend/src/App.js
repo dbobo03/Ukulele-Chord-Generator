@@ -8,10 +8,13 @@ const App = () => {
   const [error, setError] = useState('');
   const [history, setHistory] = useState([]);
   const [spotifyResults, setSpotifyResults] = useState([]);
-  const [searchType, setSearchType] = useState('general'); // 'general', 'spotify', 'youtube'
+  const [searchType, setSearchType] = useState('general');
   const [spotifyToken, setSpotifyToken] = useState(null);
   const [showChordGraphs, setShowChordGraphs] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
+  const [previousSearch, setPreviousSearch] = useState(null);
+  const [lyricsSource, setLyricsSource] = useState('found'); // 'found', 'manual', 'not_found'
+  const [manualLyrics, setManualLyrics] = useState('');
 
   useEffect(() => {
     const savedHistory = localStorage.getItem('ukuleleHistory');
@@ -41,12 +44,61 @@ const App = () => {
     }
   };
 
+  const getSpotifyAudioFeatures = async (trackId) => {
+    if (!spotifyToken || !trackId) return null;
+    
+    try {
+      const response = await fetch(
+        `https://api.spotify.com/v1/audio-features/${trackId}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${spotifyToken}`
+          }
+        }
+      );
+      
+      if (response.ok) {
+        return await response.json();
+      }
+    } catch (err) {
+      console.error('Failed to get audio features:', err);
+    }
+    return null;
+  };
+
+  const searchLyrics = async (artist, title) => {
+    // Try multiple free lyrics APIs
+    const sources = [
+      { name: 'Lyrics.ovh', url: `https://api.lyrics.ovh/v1/${encodeURIComponent(artist)}/${encodeURIComponent(title)}` },
+      // Add more free APIs as fallbacks
+    ];
+
+    for (const source of sources) {
+      try {
+        const response = await fetch(source.url);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.lyrics && data.lyrics.trim()) {
+            return {
+              lyrics: data.lyrics.trim(),
+              source: source.name
+            };
+          }
+        }
+      } catch (err) {
+        console.log(`${source.name} failed:`, err);
+        continue;
+      }
+    }
+    
+    return null;
+  };
+
   const extractYouTubeTitle = (url) => {
     try {
       const urlObj = new URL(url);
       const videoId = urlObj.searchParams.get('v');
       if (videoId) {
-        // Extract title from URL or use video ID
         return `YouTube Video (${videoId})`;
       }
     } catch (err) {
@@ -81,10 +133,23 @@ const App = () => {
     }
   };
 
-  const selectSpotifyTrack = (track) => {
+  const selectSpotifyTrack = async (track) => {
     const songTitle = `${track.artists[0].name} - ${track.name}`;
     setSongInput(songTitle);
     setSpotifyResults([]);
+    
+    // Get audio features for better accuracy
+    const audioFeatures = await getSpotifyAudioFeatures(track.id);
+    
+    // Try to get real lyrics
+    const lyricsData = await searchLyrics(track.artists[0].name, track.name);
+    
+    // Store track data for generation
+    window.currentTrackData = {
+      track: track,
+      audioFeatures: audioFeatures,
+      lyrics: lyricsData
+    };
   };
 
   const saveToHistory = (sheet) => {
@@ -100,6 +165,60 @@ const App = () => {
     setError('');
     
     try {
+      const trackData = window.currentTrackData || {};
+      const { audioFeatures, lyrics: foundLyrics } = trackData;
+      
+      let systemPrompt = `You are a professional ukulele instructor and music transcriptionist. Create accurate ukulele chord sheets with precise chord positioning.
+
+🎵 UKULELE CHORD SHEET REQUIREMENTS:
+
+1. ACCURACY: Use only real, accurate information - NO made-up lyrics
+2. CHORD POSITIONING: Place chords directly above the exact syllable where they change
+3. UKULELE CHORDS: Use proper ukulele fingerings (C, G, Am, F, D, A, E, Em, Dm, C7, G7, F7)
+4. SONG STRUCTURE: Clear [Intro], [Verse], [Chorus], [Bridge], [Outro] sections
+5. STRUMMING PATTERNS: Include specific patterns like D-D-U-U-D-U, D-U-X-U-D-U
+6. PROFESSIONAL FORMAT: Key, BPM, difficulty level, chord diagrams
+${showChordGraphs ? '7. CHORD DIAGRAMS: Include ASCII fingering charts for complex chords' : ''}
+
+${audioFeatures ? `
+SPOTIFY AUDIO ANALYSIS:
+- Key: ${getKeyName(audioFeatures.key, audioFeatures.mode)}
+- Tempo: ${Math.round(audioFeatures.tempo)} BPM
+- Energy: ${Math.round(audioFeatures.energy * 100)}%
+- Danceability: ${Math.round(audioFeatures.danceability * 100)}%
+Use this data for accurate chord progressions and strumming patterns.
+` : ''}
+
+CRITICAL RULE: If you don't know the exact lyrics, state "Lyrics not found - please provide them manually" instead of creating fake lyrics.`;
+
+      let userPrompt;
+      
+      if (foundLyrics && foundLyrics.lyrics) {
+        // We found real lyrics
+        userPrompt = `Create a professional ukulele chord sheet for: "${songInput}"
+
+REAL LYRICS FOUND:
+${foundLyrics.lyrics}
+
+Use these EXACT lyrics with accurate chord positioning. Do not modify the lyrics.`;
+        setLyricsSource('found');
+      } else if (manualLyrics.trim()) {
+        // User provided manual lyrics
+        userPrompt = `Create a professional ukulele chord sheet for: "${songInput}"
+
+USER-PROVIDED LYRICS:
+${manualLyrics}
+
+Use these EXACT lyrics with accurate chord positioning. Do not modify the lyrics.`;
+        setLyricsSource('manual');
+      } else {
+        // No lyrics found - ask for manual input
+        setLyricsSource('not_found');
+        setError('Lyrics not found for this song. Please provide the lyrics manually below, or we can create a chord-only arrangement.');
+        setLoading(false);
+        return;
+      }
+
       const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -109,44 +228,11 @@ const App = () => {
         body: JSON.stringify({
           model: 'llama3-8b-8192',
           messages: [
-            {
-              role: 'system',
-              content: `You are a professional ukulele instructor. Create clean, accurate ukulele chord sheets with chords positioned exactly above the lyrics.
-
-🎵 UKULELE CHORD SHEET RULES:
-
-1. CHORD POSITIONING: Place chords directly above the syllable where they change
-2. UKULELE CHORDS: Use standard ukulele fingerings (C, G, Am, F, D, A, E, Em, Dm, C7, G7, F7, etc.)
-3. SONG STRUCTURE: Clearly mark [Intro], [Verse], [Chorus], [Bridge], [Outro]
-4. STRUMMING PATTERNS: Include clear strumming directions like:
-   - D-D-U-U-D-U (Down-Down-Up-Up-Down-Up)
-   - D-U-X-U-D-U (Down-Up-Mute-Up-Down-Up)
-   - D-U-D-U (simple down-up pattern)
-5. KEY & TEMPO: Specify key signature and suggested BPM
-6. DIFFICULTY: Mark as Beginner/Intermediate/Advanced
-${showChordGraphs ? '7. CHORD DIAGRAMS: Include simple fingering charts for any complex chords' : ''}
-
-EXAMPLE FORMAT:
-**Song Title** - Key of C - BPM: 120 - Difficulty: Beginner
-Strumming: D-D-U-U-D-U
-
-[Verse 1]
-C              G           Am          F
-Twinkle twinkle little star, how I wonder what you are
-C              G           Am         F
-Up above the world so high, like a diamond in the sky
-
-Focus on accuracy and readability. Make it perfect for ukulele players of all levels.`
-            },
-            {
-              role: 'user',
-              content: `Create a professional ukulele chord sheet for: "${songInput}". 
-
-If this is a real song, provide accurate chords and lyrics with proper chord positioning. If you don't know this exact song, create an inspiring chord progression and meaningful lyrics that fit the title. Include strumming patterns and make it perfect for ukulele.`
-            }
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt }
           ],
-          max_tokens: 1000,
-          temperature: 0.7
+          max_tokens: 1200,
+          temperature: 0.3 // Lower temperature for more accuracy
         })
       });
 
@@ -159,11 +245,14 @@ If this is a real song, provide accurate chords and lyrics with proper chord pos
         title: songInput,
         content: data.choices[0].message.content,
         timestamp: new Date().toISOString(),
-        id: Date.now()
+        id: Date.now(),
+        source: foundLyrics ? foundLyrics.source : 'manual',
+        audioFeatures: audioFeatures
       };
 
       setChordSheet(generatedSheet);
       saveToHistory(generatedSheet);
+      setManualLyrics(''); // Clear manual lyrics after successful generation
       
     } catch (err) {
       console.error('Error:', err);
@@ -171,6 +260,87 @@ If this is a real song, provide accurate chords and lyrics with proper chord pos
     } finally {
       setLoading(false);
     }
+  };
+
+  const generateChordOnlySheet = async () => {
+    if (!songInput.trim()) return;
+    
+    setLoading(true);
+    setError('');
+    
+    try {
+      const trackData = window.currentTrackData || {};
+      const { audioFeatures } = trackData;
+      
+      const systemPrompt = `You are a professional ukulele instructor. Create a chord-only arrangement (no lyrics) with chord progressions and playing instructions.
+
+🎵 CHORD-ONLY ARRANGEMENT:
+
+1. CHORD PROGRESSIONS: Create logical verse/chorus/bridge progressions
+2. UKULELE CHORDS: Use proper ukulele fingerings
+3. STRUMMING PATTERNS: Multiple pattern suggestions
+4. SONG STRUCTURE: Clear sections with chord changes
+5. PLAYING TIPS: Tempo, dynamics, transitions
+${showChordGraphs ? '6. CHORD DIAGRAMS: Include fingering charts' : ''}
+
+${audioFeatures ? `
+SPOTIFY AUDIO ANALYSIS:
+- Key: ${getKeyName(audioFeatures.key, audioFeatures.mode)}
+- Tempo: ${Math.round(audioFeatures.tempo)} BPM
+- Energy: ${Math.round(audioFeatures.energy * 100)}%
+Use this for accurate progressions.
+` : ''}
+
+Format as a professional lead sheet with chord symbols and structure.`;
+
+      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.REACT_APP_GROQ_API_KEY}`
+        },
+        body: JSON.stringify({
+          model: 'llama3-8b-8192',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: `Create a chord-only ukulele arrangement for: "${songInput}"` }
+          ],
+          max_tokens: 800,
+          temperature: 0.3
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`API Error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const generatedSheet = {
+        title: songInput + ' (Chord-Only)',
+        content: data.choices[0].message.content,
+        timestamp: new Date().toISOString(),
+        id: Date.now(),
+        source: 'chord-only',
+        audioFeatures: audioFeatures
+      };
+
+      setChordSheet(generatedSheet);
+      saveToHistory(generatedSheet);
+      setLyricsSource('found'); // Reset state
+      
+    } catch (err) {
+      console.error('Error:', err);
+      setError('Something went wrong. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getKeyName = (key, mode) => {
+    const keys = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    const keyName = keys[key] || 'Unknown';
+    const modeName = mode === 1 ? 'Major' : 'Minor';
+    return `${keyName} ${modeName}`;
   };
 
   const exportToPDF = () => {
@@ -182,9 +352,9 @@ If this is a real song, provide accurate chords and lyrics with proper chord pos
         <head>
           <title>${chordSheet.title} - Ukulele Chords</title>
           <style>
-            @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap');
+            @import url('https://fonts.googleapis.com/css2?family=Times+New+Roman&family=Courier+New&display=swap');
             body {
-              font-family: 'JetBrains Mono', monospace;
+              font-family: 'Times New Roman', serif;
               margin: 40px;
               line-height: 1.8;
               color: #2c1810;
@@ -197,19 +367,21 @@ If this is a real song, provide accurate chords and lyrics with proper chord pos
               padding-bottom: 20px;
             }
             h1 {
-              font-family: 'Roboto', sans-serif;
+              font-family: 'Times New Roman', serif;
               font-size: 2.5rem;
               color: #8b4513;
               margin-bottom: 10px;
-              font-weight: 700;
+              font-weight: bold;
             }
-            .subtitle {
+            .source-info {
               color: #8b4513;
-              font-size: 1.1rem;
+              font-size: 1rem;
               opacity: 0.8;
+              margin: 10px 0;
             }
             pre {
               white-space: pre-wrap;
+              font-family: 'Courier New', monospace;
               font-size: 14px;
               background: rgba(255, 255, 255, 0.8);
               padding: 30px;
@@ -231,12 +403,15 @@ If this is a real song, provide accurate chords and lyrics with proper chord pos
         <body>
           <div class="header">
             <h1>🎸 ${chordSheet.title}</h1>
-            <div class="subtitle">Professional Ukulele Chord Sheet</div>
+            ${chordSheet.source && chordSheet.source !== 'manual' ? 
+              `<div class="source-info">Lyrics source: ${chordSheet.source}</div>` : ''}
+            ${chordSheet.audioFeatures ? 
+              `<div class="source-info">Enhanced with Spotify Audio Analysis</div>` : ''}
           </div>
           <pre>${chordSheet.content}</pre>
           <div class="footer">
-            <div>Generated ${new Date(chordSheet.timestamp).toLocaleDateString()}</div>
-            <div style="margin-top: 10px; font-style: italic;">Perfect for ukulele players of all levels</div>
+            <div>Professional Ukulele Arrangement • ${new Date(chordSheet.timestamp).toLocaleDateString()}</div>
+            <div style="margin-top: 10px; font-style: italic;">Generated with accuracy and precision</div>
           </div>
         </body>
       </html>
@@ -272,6 +447,33 @@ If this is a real song, provide accurate chords and lyrics with proper chord pos
     }
   };
 
+  const handleSearchTypeChange = (newType) => {
+    // Save current search as previous
+    if (songInput.trim()) {
+      setPreviousSearch({
+        query: songInput,
+        type: searchType,
+        timestamp: Date.now()
+      });
+    }
+    
+    // Clear current search and change type
+    setSongInput('');
+    setSpotifyResults([]);
+    setSearchType(newType);
+    setError('');
+    setLyricsSource('found');
+    setManualLyrics('');
+  };
+
+  const restorePreviousSearch = () => {
+    if (previousSearch) {
+      setSongInput(previousSearch.query);
+      setSearchType(previousSearch.type);
+      setPreviousSearch(null);
+    }
+  };
+
   const getPlaceholderText = () => {
     switch (searchType) {
       case 'spotify':
@@ -291,7 +493,7 @@ If this is a real song, provide accurate chords and lyrics with proper chord pos
           <h1 className="title">
             <span className="title-text">Ukulele Chord Generator</span>
           </h1>
-          <p className="subtitle">Clean chord sheets with perfect positioning 🎸</p>
+          <p className="subtitle">Accurate chord sheets with real lyrics 🎸</p>
         </div>
       </header>
 
@@ -302,24 +504,37 @@ If this is a real song, provide accurate chords and lyrics with proper chord pos
           {/* Search Type Selector */}
           <div className="search-type-selector">
             <button 
-              onClick={() => setSearchType('general')}
+              onClick={() => handleSearchTypeChange('general')}
               className={`search-type-btn ${searchType === 'general' ? 'active' : ''}`}
             >
               🌐 General
             </button>
             <button 
-              onClick={() => setSearchType('spotify')}
+              onClick={() => handleSearchTypeChange('spotify')}
               className={`search-type-btn ${searchType === 'spotify' ? 'active' : ''}`}
             >
               🎵 Spotify
             </button>
             <button 
-              onClick={() => setSearchType('youtube')}
+              onClick={() => handleSearchTypeChange('youtube')}
               className={`search-type-btn ${searchType === 'youtube' ? 'active' : ''}`}
             >
               📺 YouTube
             </button>
           </div>
+
+          {/* Previous Search */}
+          {previousSearch && (
+            <div className="previous-search">
+              <span className="previous-label">Previous search:</span>
+              <button 
+                onClick={restorePreviousSearch}
+                className="previous-search-btn"
+              >
+                📝 "{previousSearch.query}" ({previousSearch.type})
+              </button>
+            </div>
+          )}
 
           {/* Input Section */}
           <div className="input-section">
@@ -346,6 +561,9 @@ If this is a real song, provide accurate chords and lyrics with proper chord pos
                         <div className="track-info">
                           <div className="track-name">{track.name}</div>
                           <div className="track-artist">{track.artists.map(a => a.name).join(', ')}</div>
+                          <div className="track-meta">
+                            {track.album.name} • {track.popularity}% popularity
+                          </div>
                         </div>
                         {track.album.images[2] && (
                           <img 
@@ -360,6 +578,22 @@ If this is a real song, provide accurate chords and lyrics with proper chord pos
                 )}
               </div>
             </div>
+
+            {/* Manual Lyrics Input */}
+            {lyricsSource === 'not_found' && (
+              <div className="manual-lyrics-section">
+                <label className="lyrics-label">
+                  Provide the real lyrics for accurate chord positioning:
+                </label>
+                <textarea
+                  value={manualLyrics}
+                  onChange={(e) => setManualLyrics(e.target.value)}
+                  placeholder="Paste the real song lyrics here..."
+                  className="manual-lyrics-input"
+                  rows={8}
+                />
+              </div>
+            )}
 
             {/* Settings */}
             <div className="settings-panel">
@@ -380,28 +614,54 @@ If this is a real song, provide accurate chords and lyrics with proper chord pos
                         onChange={(e) => setShowChordGraphs(e.target.checked)}
                         className="setting-checkbox"
                       />
-                      Include Chord Diagrams
+                      Include Chord Diagrams (Visual Fingering Charts)
                     </label>
                   </div>
                 </div>
               )}
             </div>
             
-            {/* Generate Button */}
+            {/* Generate Buttons */}
             <div className="generate-section">
-              <button 
-                onClick={generateChordSheet}
-                disabled={loading || !songInput.trim()}
-                className="generate-btn"
-              >
-                {loading ? (
-                  <span className="loading">
-                    <span className="spinner"></span> Generating...
-                  </span>
-                ) : (
-                  '🎸 Generate Chord Sheet'
-                )}
-              </button>
+              {lyricsSource === 'not_found' ? (
+                <div className="generate-options">
+                  <button 
+                    onClick={generateChordSheet}
+                    disabled={loading || !songInput.trim() || !manualLyrics.trim()}
+                    className="generate-btn primary"
+                  >
+                    {loading ? (
+                      <span className="loading">
+                        <span className="spinner"></span> Generating...
+                      </span>
+                    ) : (
+                      '🎸 Generate with Manual Lyrics'
+                    )}
+                  </button>
+                  <span className="or-divider">or</span>
+                  <button 
+                    onClick={generateChordOnlySheet}
+                    disabled={loading || !songInput.trim()}
+                    className="generate-btn secondary"
+                  >
+                    🎼 Generate Chord-Only Sheet
+                  </button>
+                </div>
+              ) : (
+                <button 
+                  onClick={generateChordSheet}
+                  disabled={loading || !songInput.trim()}
+                  className="generate-btn primary"
+                >
+                  {loading ? (
+                    <span className="loading">
+                      <span className="spinner"></span> Generating...
+                    </span>
+                  ) : (
+                    '🎸 Generate Accurate Chord Sheet'
+                  )}
+                </button>
+              )}
             </div>
             
             {error && (
@@ -423,6 +683,11 @@ If this is a real song, provide accurate chords and lyrics with proper chord pos
                   <span className="timestamp">
                     {new Date(chordSheet.timestamp).toLocaleDateString()}
                   </span>
+                  {chordSheet.source && (
+                    <span className="source-badge">
+                      📝 {chordSheet.source}
+                    </span>
+                  )}
                 </div>
               </div>
               
@@ -444,8 +709,11 @@ If this is a real song, provide accurate chords and lyrics with proper chord pos
                     onClick={() => loadFromHistory(sheet)}
                   >
                     <div className="history-title-text">🎵 {sheet.title}</div>
-                    <div className="history-date">
-                      {new Date(sheet.timestamp).toLocaleDateString()}
+                    <div className="history-meta">
+                      {sheet.source && <span className="history-source">{sheet.source}</span>}
+                      <span className="history-date">
+                        {new Date(sheet.timestamp).toLocaleDateString()}
+                      </span>
                     </div>
                   </div>
                 ))}
@@ -458,7 +726,7 @@ If this is a real song, provide accurate chords and lyrics with proper chord pos
       {/* Footer */}
       <footer className="footer">
         <div className="footer-content">
-          <p>🎸 Clean Ukulele Chord Sheets • Powered by AI</p>
+          <p>🎸 Accurate Ukulele Chord Sheets • Real Lyrics • Enhanced with AI</p>
         </div>
       </footer>
     </div>
