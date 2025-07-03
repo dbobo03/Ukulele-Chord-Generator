@@ -1,0 +1,26 @@
+{
+  "builds": [
+    {
+      "src": "frontend/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "build"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/callback",
+      "dest": "/index.html"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
+  ],
+  "env": {
+    "REACT_APP_GROQ_API_KEY": "@groq-api-key",
+    "REACT_APP_SPOTIFY_CLIENT_ID": "@spotify-client-id",
+    "REACT_APP_SPOTIFY_CLIENT_SECRET": "@spotify-client-secret"
+  }
+}
