@@ -39,7 +39,65 @@ const App = () => {
       setHistory(JSON.parse(savedHistory));
     }
     getSpotifyToken();
+    checkSpotifyLoginStatus();
   }, []);
+
+  const checkSpotifyLoginStatus = () => {
+    if (SpotifyAuth.isLoggedIn()) {
+      const user = SpotifyAuth.getUserProfile();
+      setSpotifyUser(user);
+      loadUserSpotifyData();
+    }
+  };
+
+  const loadUserSpotifyData = async () => {
+    try {
+      const [playlists, savedTracks] = await Promise.all([
+        SpotifyAuth.getUserPlaylists(10),
+        SpotifyAuth.getSavedTracks(20)
+      ]);
+      
+      if (playlists) setUserPlaylists(playlists.items || []);
+      if (savedTracks) setUserSavedTracks(savedTracks.items || []);
+    } catch (error) {
+      console.error('Failed to load user Spotify data:', error);
+    }
+  };
+
+  const handleSpotifyLoginSuccess = (user) => {
+    setSpotifyUser(user);
+    setShowSpotifyLogin(false);
+    setSpotifyAuthError('');
+    loadUserSpotifyData();
+  };
+
+  const handleSpotifyLoginError = (error) => {
+    setSpotifyAuthError(error.message);
+    setShowSpotifyLogin(true);
+  };
+
+  const handleSearchTypeChange = (newType) => {
+    if (songInput.trim()) {
+      setPreviousSearch({
+        query: songInput,
+        type: searchType,
+        timestamp: Date.now()
+      });
+    }
+    
+    // Show Spotify login if switching to Spotify and not logged in
+    if (newType === 'spotify' && !spotifyUser) {
+      setShowSpotifyLogin(true);
+    }
+    
+    setSongInput('');
+    setSpotifyResults([]);
+    setSearchType(newType);
+    setError('');
+    setLyricsSource('found');
+    setManualLyrics('');
+    setLyricsSearchStatus('');
+  };
 
   const getSpotifyToken = async () => {
     try {
