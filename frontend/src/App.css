@@ -656,6 +656,191 @@ body::before {
   }
 }
 
+/* Previous Search */
+.previous-search {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  animation: fadeInUp 0.6s ease 0.3s both;
+}
+
+.previous-label {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin-right: 0.5rem;
+}
+
+.previous-search-btn {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.9rem;
+}
+
+.previous-search-btn:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--wood-medium);
+  transform: translateY(-1px);
+}
+
+/* Enhanced Spotify Results */
+.track-meta {
+  font-size: 0.8rem;
+  color: var(--wood-darker);
+  opacity: 0.6;
+  margin-top: 0.2rem;
+}
+
+/* Manual Lyrics Section */
+.manual-lyrics-section {
+  margin: 2rem 0;
+  padding: 2rem;
+  background: var(--bg-secondary);
+  border: 2px solid var(--wood-medium);
+  border-radius: 15px;
+  backdrop-filter: blur(15px);
+}
+
+.lyrics-label {
+  display: block;
+  color: var(--text-secondary);
+  font-weight: 600;
+  margin-bottom: 1rem;
+  font-size: 1.1rem;
+}
+
+.manual-lyrics-input {
+  width: 100%;
+  min-height: 200px;
+  padding: 1rem;
+  background: rgba(244, 228, 188, 0.9);
+  border: 2px solid var(--wood-medium);
+  border-radius: 12px;
+  color: var(--wood-dark);
+  font-family: 'Times New Roman', serif;
+  font-size: 1rem;
+  line-height: 1.6;
+  resize: vertical;
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+.manual-lyrics-input:focus {
+  border-color: var(--wood-dark);
+  box-shadow: 0 0 0 3px rgba(139, 69, 19, 0.2);
+  background: var(--wood-light);
+}
+
+.manual-lyrics-input::placeholder {
+  color: var(--wood-dark);
+  opacity: 0.6;
+  font-style: italic;
+}
+
+/* Generate Options */
+.generate-options {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.generate-btn.primary {
+  background: linear-gradient(135deg, var(--wood-medium), var(--wood-dark));
+  color: white;
+  border: 2px solid var(--wood-darker);
+}
+
+.generate-btn.secondary {
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  border: 2px solid var(--wood-medium);
+}
+
+.generate-btn.secondary:hover:not(:disabled) {
+  background: var(--bg-tertiary);
+  border-color: var(--wood-dark);
+  color: var(--text-primary);
+}
+
+.or-divider {
+  color: var(--text-muted);
+  font-style: italic;
+  padding: 0 1rem;
+}
+
+/* Source Badge */
+.source-badge {
+  background: var(--wood-medium);
+  color: white;
+  padding: 0.3rem 0.8rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+/* History Enhancements */
+.history-source {
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  padding: 0.2rem 0.6rem;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  margin-right: 0.5rem;
+}
+
+.history-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0.5rem;
+}
+
+/* Enhanced Typography - Times New Roman */
+.chord-content {
+  font-family: 'Times New Roman', serif;
+  font-size: 1rem;
+  line-height: 2;
+  color: var(--wood-dark);
+  white-space: pre-wrap;
+  background: none;
+  overflow-x: auto;
+  margin: 0;
+  font-weight: 400;
+}
+
+/* Responsive Enhancements */
+@media (max-width: 768px) {
+  .generate-options {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .or-divider {
+    padding: 0.5rem 0;
+  }
+  
+  .manual-lyrics-section {
+    padding: 1.5rem;
+    margin: 1.5rem 0;
+  }
+  
+  .previous-search {
+    margin-bottom: 1rem;
+  }
+  
+  .previous-search-btn {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 10px;
