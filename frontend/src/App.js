@@ -961,6 +961,35 @@ Format as a professional lead sheet with clear sections and detailed performance
             </div>
           )}
 
+          {/* Spotify Login Modal */}
+          {showSpotifyLogin && (
+            <div className="spotify-login-modal">
+              <div className="modal-overlay" onClick={() => setShowSpotifyLogin(false)}></div>
+              <div className="modal-content">
+                <div className="modal-header">
+                  <h3 className="modal-title">🎵 Connect Your Spotify Account</h3>
+                  <button 
+                    onClick={() => setShowSpotifyLogin(false)}
+                    className="modal-close"
+                  >
+                    ✕
+                  </button>
+                </div>
+                <div className="modal-body">
+                  <SpotifyLogin 
+                    onLoginSuccess={handleSpotifyLoginSuccess}
+                    onLoginError={handleSpotifyLoginError}
+                  />
+                  {spotifyAuthError && (
+                    <div className="auth-error">
+                      🚨 {spotifyAuthError}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Search Type Selector */}
           <div className="search-type-selector">
             <button 
