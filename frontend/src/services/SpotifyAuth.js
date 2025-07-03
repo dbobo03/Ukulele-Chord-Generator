@@ -2,7 +2,7 @@ class SpotifyAuthService {
   constructor() {
     this.clientId = process.env.REACT_APP_SPOTIFY_CLIENT_ID;
     this.clientSecret = process.env.REACT_APP_SPOTIFY_CLIENT_SECRET;
-    this.redirectUri = `${window.location.origin}/callback`;
+    this.redirectUri = `${window.location.origin}`;
     this.scopes = [
       'user-read-private',
       'user-read-email', 
