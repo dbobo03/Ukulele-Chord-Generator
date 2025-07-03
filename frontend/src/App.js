@@ -482,6 +482,107 @@ INSTRUCTIONS:
     }
   };
 
+  const generateTemplateSheet = async () => {
+    if (!songInput.trim()) return;
+    
+    setLoading(true);
+    setError('');
+    
+    try {
+      const trackData = window.currentTrackData || {};
+      const { audioFeatures, trackAnalysis } = trackData;
+      
+      const systemPrompt = `You are a professional ukulele instructor. Create a TEMPLATE chord sheet with placeholder lyrics that musicians can fill in with real lyrics later.
+
+🎼 TEMPLATE CHORD SHEET SPECIFICATIONS:
+
+1. CHORD PROGRESSIONS: Create realistic, playable ukulele progressions
+2. PLACEHOLDER LYRICS: Use clear placeholders like "(First verse goes here)", "(Chorus hook line)"
+3. SONG STRUCTURE: Complete sections - [Verse], [Chorus], [Bridge], [Outro]
+4. LYRIC GUIDES: Show typical line lengths and syllable counts
+5. PROFESSIONAL FORMAT: Ready-to-use template that any musician can fill
+
+${audioFeatures ? `
+🎵 SPOTIFY MUSICAL DATA:
+- Key: ${getKeyName(audioFeatures.key, audioFeatures.mode)}
+- Tempo: ${Math.round(audioFeatures.tempo)} BPM
+- Energy: ${Math.round(audioFeatures.energy * 100)}%
+- Mood: ${Math.round(audioFeatures.valence * 100)}% positive
+
+Create chord progressions that match this musical profile.
+` : ''}
+
+TEMPLATE FORMAT EXAMPLE:
+[Verse 1]
+C              G           Am          F
+(First verse line goes here - about 8-12 syllables)
+C              G           Am          F
+(Second line follows the melody)
+Am             F           C           G
+(Third line builds the story)
+F              G           C           C
+(Verse ending - resolution)
+
+[Chorus]
+F              C           G           Am
+(Main hook/title line goes here)
+F              C           G           C
+(Memorable phrase that repeats)
+
+CRITICAL: Use ONLY placeholder text in parentheses - NO fictional lyrics. Make it clear this is a template to fill in.
+
+${showChordGraphs ? `
+🎸 INCLUDE CHORD DIAGRAMS:
+Provide ukulele fingering charts for all chords used.
+` : ''}
+
+Create a professional, usable template that any musician can immediately use.`;
+
+      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.REACT_APP_GROQ_API_KEY}`
+        },
+        body: JSON.stringify({
+          model: 'llama3-8b-8192',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: `Create a professional ukulele chord sheet TEMPLATE for: "${songInput}". Use placeholder lyrics that can be replaced with real lyrics later.` }
+          ],
+          max_tokens: 1200,
+          temperature: 0.3
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`API Error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const generatedSheet = {
+        title: songInput + ' (Template)',
+        content: data.choices[0].message.content,
+        timestamp: new Date().toISOString(),
+        id: Date.now(),
+        source: 'template',
+        audioFeatures: audioFeatures,
+        trackAnalysis: trackAnalysis,
+        lyricsQuality: 'template'
+      };
+
+      setChordSheet(generatedSheet);
+      saveToHistory(generatedSheet);
+      setLyricsSource('found'); // Reset state
+      
+    } catch (err) {
+      console.error('Error:', err);
+      setError('Generation failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const generateChordOnlySheet = async () => {
     if (!songInput.trim()) return;
     
