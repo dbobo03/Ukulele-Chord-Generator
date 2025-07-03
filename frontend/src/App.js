@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ChordDiagram from './components/ChordDiagram';
+import SpotifyLogin from './components/SpotifyLogin';
+import SpotifyAuth from './services/SpotifyAuth';
 import './App.css';
 
 const App = () => {
